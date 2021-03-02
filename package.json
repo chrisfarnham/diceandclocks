@@ -1,9 +1,14 @@
 {
 	"name": "dice-and-clocks",
 	"devDependencies": {
-		"shadow-cljs": "2.11.18"
+		"autoprefixer": "^10.2.4",
+		"postcss": "^8.2.6",
+		"postcss-cli": "^8.3.1",
+		"shadow-cljs": "2.11.18",
+		"tailwindcss": "^2.0.3"
 	},
 	"dependencies": {
+		"postcss-import": "^14.0.0",
 		"react": "17.0.1",
 		"react-dom": "17.0.1"
 	}

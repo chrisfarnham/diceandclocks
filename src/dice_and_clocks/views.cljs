@@ -24,10 +24,12 @@
     [:<>
      [:div "Input new Todo:"]
      [:input {:type  :text
+              :class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline"
               :value @new-todo
               :on-change
               (fn [^js e] (reset! new-todo (.. e -target -value)))}]
      [:button {:disabled (string/blank? @new-todo)
+               :class "bg-pink-500 text-white active:bg-pink-600 font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1"
                :on-click (fn []
                            (persist-todo @new-todo)
                            (reset! new-todo nil))} "Save"]]))
@@ -55,10 +57,11 @@
         todos @(rf/subscribe [::db/realtime-value {:path todos-path}])]
     [:div
      [:h1 "Hello from " @name]
+     [:p {:class "text-gray-500"} "This is a test"]
      [auth-display user]
 (when user
   (if db-connected?
-    [:div
+    [:div {:class "p-6"}
      [:br]
      [add-todo (fn [todo]
                  (rf/dispatch
