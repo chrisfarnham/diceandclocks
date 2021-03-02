@@ -1,19 +1,19 @@
-/target
-/classes
-/checkouts
-profiles.clj
-pom.xml
-pom.xml.asc
-*.jar
-*.class
+/out/
+/resources/public/js/compiled/
+/resources/public/firebase-init.js
+/resources/public/index.html
+/target/
+/*-init.clj
+/*.log
+
+# Leiningen
 /.lein-*
 /.nrepl-port
-/out
-/.repl
-*.log
-/.env
-/.sass-cache
-/node_modules
+
+# Node.js dependencies
+/node_modules/
+
+# shadow-cljs cache, port files
+/shadow-cljs.edn
 /.shadow-cljs/
-/resources/public/js/
-.lsp
+.*
