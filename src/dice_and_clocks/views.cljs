@@ -24,20 +24,29 @@
 
 (def button-class "bg-grey-500 text-white active:bg-pink-600 font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1")
 
-(declare new-channel)
-(defn add-channel [persist-channel]
-  (r/with-let [new-channel (r/atom nil)]
+
+
+
+
+(defn add-channel [persist-channel-name]
+  (r/with-let [new-channel-name (r/atom {:channel "" :name ""})]
   [:<>
-   [:div "Create a channel"]
+   [:div "Start"]
    [:input {:type :text
             :class text-input-class
-            :value @new-channel
-            :on-change (fn [^js e] (reset! new-channel (.. e -target -value)))}]
-   [:button {:disabled (string/blank? @new-channel)
+            :value (:channel @new-channel-name)
+            :placeholder "Channel Name"
+            :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]
+   [:input {:type :text
+            :class text-input-class
+            :value (:name @new-channel-name)
+            :placeholder "User Name"
+            :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]
+   [:button {:disabled (some string/blank? (vals @new-channel-name))
              :class button-class
              :on-click (fn []
-                         (persist-channel @new-channel)
-                         (reset! new-channel nil))} "Create"]]))
+                         (persist-channel-name @new-channel-name)
+                         (reset! new-channel-name {:channel "" :name ""}))} "Create"]]))
 (declare new-todo)
 (defn add-todo [persist-todo]
   (r/with-let [new-todo (r/atom nil)]
@@ -80,16 +89,18 @@
     [:div {:class "w-full bg-gray-300"}
      [:h1 "Clocks and Dice"]
      [:h1 (str "Channel: " channel)]
+      [:h1 (str "Name: " name)]
      [:p {:class "text-gray-500"} "This is a test"]
      [auth-display user]
 (when user
   (if db-connected?
     [:div {:class "p-6"}
-     [add-channel (fn [channel]
+     [add-channel (fn [channel-name]
                     (rf/dispatch
-                     [::db/push {:value {:name channel}
+                     [::db/push {:value {:name (:channel channel-name)}
                                  :path channels-path}])
-                    (rf/dispatch [:channel channel]))]
+                    (rf/dispatch [:channel-name channel-name])
+                    )]
      [:br]
      [add-todo (fn [todo]
                  (rf/dispatch

@@ -1,9 +1,11 @@
 (ns dice-and-clocks.db)
 
+(def search
+  (subs (.. js/window -location -search) 1))
 
-(defn location->channel []
-  (second (re-matches #"/(.+)" (.. js/window -location -pathname))))
+(def pathname
+  (subs (.. js/window -location -pathname) 1))
 
 (def default-db
-  {:name "re-frame" :channel nil})
+  {:name search :channel pathname})
 

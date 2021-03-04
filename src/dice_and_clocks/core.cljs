@@ -7,18 +7,16 @@
    [dice-and-clocks.config :as config]
    ))
 
+
+(defn location->channel []
+  (second (re-matches #"/(.+)" (.. js/window -location))))
+
+
 (defn dev-setup []
   (when config/debug?
     (println "dev mode")
     (println (.. js/window -location -pathname))
-    (println (str "url-path->info: " "test"))))
-; swtich to https://github.com/metosin/reitit
-; http://russmatney.com/2020-04-23-reitit-router-in-reframe/
-; 
-; 
-; Or router5 just looks perfect
-; https://router5.js.org/introduction/core-concepts
-; https://github.com/pesterhazy/cljs-spa-example
+    ))
 
 (defn ^:dev/after-load mount-root []
   (re-frame/clear-subscription-cache!)
