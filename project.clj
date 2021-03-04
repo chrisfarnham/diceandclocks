@@ -10,7 +10,6 @@
                  [cljs-bean/cljs-bean "1.5.0"]]
 
   :plugins [[lein-shadow "0.3.1"]
-            
             [lein-shell "0.5.0"]]
 
   :min-lein-version "2.9.0"

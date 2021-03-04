@@ -8,3 +8,9 @@
  ::initialize-db
  (fn [_ _]
    db/default-db))
+
+(re-frame/reg-event-db
+ :channel
+ (fn [db [_ active-panel]]
+   (assoc db :channel active-panel)))
+
