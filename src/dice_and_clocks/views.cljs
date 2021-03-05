@@ -86,7 +86,7 @@
     
   [:<>
   [:div {:class "rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100"}
-  [:div {:class "mb-3 pt-0 m-2"}
+  [:div {:class "pt-0"}
   [add-message (fn [message]
                   (rf/dispatch
                   [::db/push {:value {:message-type :message :sender name :text message}
@@ -134,9 +134,10 @@
                             (rf/dispatch [:channel-name channel-name]))]]
             ; this is the main panel
             [:div {:class "grid grid-cols-2 divide-x divide-black"}
-             [:div {:class "p-4"}
+             [:div {:class "mr-2"}
               [messages-list name messages-path messages]]
-             [:div [:p "This is more content"]]
+             
+             [:div {:class ""} [:p {:class "ml-2"}"This is more content"]]
             ]
           )
         ]
