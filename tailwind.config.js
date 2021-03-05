@@ -7,8 +7,12 @@ module.exports = {
   theme: {
     extend: {},
   },
+  corePlugins: {
+  },
   variants: {
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }

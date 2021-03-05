@@ -10,106 +10,124 @@
    [dice-and-clocks.config :as config]
    ))
 
-(defn auth-display [user]
-  [:div
-   (when user
-     [:span (str "Logged in as: " (or (:displayName user) (:email user)))])
-   [:br]
-   [:button {:on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
-    (if user
-      "Sign out"
-      "Sign in")]])
+
 
 (def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline")
 
-(def button-class "bg-grey-500 text-white active:bg-pink-600 font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1")
+(def button-class "bg-grey-500 p-1 m-1 border-2 border-black")
 
 
+(defn auth-display [user]
+  [:div
+   (when user
+     [:span (or (:displayName user) (:email user))])
+   [:br]
+   [:div {:class "float-right"}
+   [:button {:class button-class
+             :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
+    (if user
+      "Sign out"
+      "Sign in")]]])
 
+(defn channel-name-ready? [channel-name]
+  (some string/blank? (vals channel-name)))
 
 
 (defn add-channel [persist-channel-name]
   (r/with-let [new-channel-name (r/atom {:channel "" :name ""})]
-  [:<>
-   [:div "Start"]
+  [:div {:class "space-y-4 w-4 self-center items-center"}
+   [:span {:class "block"} "Start"]
+   [:span {:class "block"}
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
             :placeholder "Channel Name"
-            :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]
-   [:input {:type :text
+            :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]]
+   
+   [:span {:class "block"}
+    [:input {:type :text
             :class text-input-class
             :value (:name @new-channel-name)
             :placeholder "User Name"
-            :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]
-   [:button {:disabled (some string/blank? (vals @new-channel-name))
+            :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]]
+   [:span {:class "block"}
+   [:button {:disabled (channel-name-ready? @new-channel-name)
              :class button-class
              :on-click (fn []
                          (persist-channel-name @new-channel-name)
-                         (reset! new-channel-name {:channel "" :name ""}))} "Create"]]))
-(declare new-todo)
-(defn add-todo [persist-todo]
-  (r/with-let [new-todo (r/atom nil)]
-    [:<>
-     [:div "Input new Todo:"]
-     [:input {:type  :text
+                         (reset! new-channel-name {:channel "" :name ""}))} "Create"]]]))
+
+(defn add-message [persist-message]
+  (r/with-let [new-message (r/atom nil)]
+  [:<>
+         [:input {:type  :text
               :class text-input-class
-              :value @new-todo
+              :value @new-message
               :on-change
-              (fn [^js e] (reset! new-todo (.. e -target -value)))}]
-     [:button {:disabled (string/blank? @new-todo)
+              (fn [^js e] (reset! new-message (.. e -target -value)))}]
+     [:button {:disabled (string/blank? @new-message)
                :class button-class
                :on-click (fn []
-                           (persist-todo @new-todo)
-                           (reset! new-todo nil))} "Save"]]))
+                           (persist-message @new-message)
+                           (reset! new-message nil))} "Send"]
+    ])
+  )
 
-(defn todo-list [todos mark-done]
+
+(defn mark-deleted 
+  "`message-path` includes the message-id"
+  [message-path]
+  (rf/dispatch
+    [::db/push {:value true
+                :path  (conj message-path :deleted?)}]))
+
+(defn messages-list [messages-path messages]
+  (let [messages (reverse messages)]
+    
+  [:<>
   [:div
-   [:h2 "Todos"]
-   (->> todos
-        (remove (fn [[_ {:keys [done?]}]]
-                  done?))
-        (map (fn [[id {:keys [description]}]]
+  [add-message (fn [message]
+                  (rf/dispatch
+                  [::db/push {:value {:message-type :message :sender name :text message}
+                              :path  messages-path}]))]]
+  [:div {:class "w-1/4 rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100 p-2"}
+  [:div {:class "grid grid-cols-1 gap-1"}
+   [:div {:class ""} [:p {:class "float-left prose prose-l"} "Messages"]]
+   (->> messages
+        (remove (fn [[_ {:keys [deleted?]}]]
+                  deleted?))
+        (map (fn [[id {:keys [text sender]}]]
                ^{:key id}
-               [:div {:style {:padding "5px"
-                              :border-bottom "solid"
-                              :border-color "gray"}}
-                [:span {:style {:margin-right "5px"}} description]
-                [:button {:on-click #(mark-done id)} "Done"]])))])
+               [:div {:class "bg-gray-500 h-12 rounded-md flex p-2 relative"}
+                [:div {:class ""} (str sender " - " text)]
+                [:div {:class "absolute right-2"}
+                 [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]
+                 ]]
+            )))]]]))
 
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
         user @(rf/subscribe [::auth/user-auth])
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
-        channels-path [:channels]
         channel @(rf/subscribe [::subs/channel])
-        todos-path [:users (:uid user) :todos]
-        todos @(rf/subscribe [::db/realtime-value {:path todos-path}])]
-    [:div {:class "w-full bg-gray-300"}
-     [:h1 "Clocks and Dice"]
-     [:h1 (str "Channel: " channel)]
-      [:h1 (str "Name: " name)]
-     [:p {:class "text-gray-500"} "This is a test"]
-     [auth-display user]
-(when user
-  (if db-connected?
-    [:div {:class "p-6"}
-     [add-channel (fn [channel-name]
-                    (rf/dispatch
-                     [::db/push {:value {:name (:channel channel-name)}
-                                 :path channels-path}])
-                    (rf/dispatch [:channel-name channel-name])
-                    )]
-     [:br]
-     [add-todo (fn [todo]
-                 (rf/dispatch
-                  [::db/push {:value {:description todo}
-                              :path  todos-path}]))]
-     [todo-list todos
-      (fn [todo-id]
-        (rf/dispatch
-         [::db/push {:value true
-                     :path  (concat todos-path [todo-id :done?])}]))]]
-    [:div "Loading.."]))
-     ]))
+        channels-path [:channels channel]
+        messages-path (conj channels-path :message)
+        messages @(rf/subscribe [::db/realtime-value {:path messages-path}])]
+    [:div {:class "w-full h-screen bg-gray-300"}
+     [:div {:class "p-2 clearfix"}
+      [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
+      [:div {:class "float-right"}[auth-display user]]]
+     (when user
+       (if db-connected?
+         [:div {:class "p-6"}
+          (if (channel-name-ready? {:channel channel :name name})
+            [:div
+             [add-channel (fn [channel-name]
+                            (rf/dispatch
+                             [::db/push {:value (:channel channel-name)
+                                         :path channels-path}])
+                            (rf/dispatch [:channel-name channel-name]))]]
+            [:div
+             [:div [messages-list messages-path messages]]])]
+         [:div "Loading.."]))]))
