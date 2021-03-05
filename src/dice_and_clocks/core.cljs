@@ -8,14 +8,11 @@
    ))
 
 
-(defn location->channel []
-  (second (re-matches #"/(.+)" (.. js/window -location))))
 
 
 (defn dev-setup []
   (when config/debug?
     (println "dev mode")
-    (println (.. js/window -location -pathname))
     ))
 
 (defn ^:dev/after-load mount-root []

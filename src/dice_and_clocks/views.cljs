@@ -12,16 +12,15 @@
 
 
 
-(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline")
+(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-1/2")
 
 (def button-class "bg-grey-500 p-1 m-1 border-2 border-black")
 
 
 (defn auth-display [user]
-  [:div
+  [:div {:class "inline-block align-middle"}
    (when user
-     [:span (or (:displayName user) (:email user))])
-   [:br]
+     [:span {:class "" }(or (:displayName user) (:email user))])
    [:div {:class "float-right"}
    [:button {:class button-class
              :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
@@ -37,7 +36,8 @@
   (r/with-let [new-channel-name (r/atom {:channel "" :name ""})]
   [:div {:class "space-y-4 w-4 self-center items-center"}
    [:span {:class "block"} "Start"]
-   [:span {:class "block"}
+   [:span {:class "block" }
+    
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
@@ -81,24 +81,25 @@
     [::db/push {:value true
                 :path  (conj message-path :deleted?)}]))
 
-(defn messages-list [messages-path messages]
+(defn messages-list [name messages-path messages]
   (let [messages (reverse messages)]
     
   [:<>
-  [:div
+  [:div {:class "rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100"}
+  [:div {:class "mb-3 pt-0 m-2"}
   [add-message (fn [message]
                   (rf/dispatch
                   [::db/push {:value {:message-type :message :sender name :text message}
                               :path  messages-path}]))]]
-  [:div {:class "w-1/4 rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100 p-2"}
+
   [:div {:class "grid grid-cols-1 gap-1"}
-   [:div {:class ""} [:p {:class "float-left prose prose-l"} "Messages"]]
+   [:div {:class "mx-2"} [:p {:class "float-left prose prose-l"} "Events"]]
    (->> messages
         (remove (fn [[_ {:keys [deleted?]}]]
                   deleted?))
         (map (fn [[id {:keys [text sender]}]]
                ^{:key id}
-               [:div {:class "bg-gray-500 h-12 rounded-md flex p-2 relative"}
+               [:div {:class "mx-2 bg-gray-500 h-12 rounded-md flex p-2 relative"}
                 [:div {:class ""} (str sender " - " text)]
                 [:div {:class "absolute right-2"}
                  [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]
@@ -114,13 +115,16 @@
         channels-path [:channels channel]
         messages-path (conj channels-path :message)
         messages @(rf/subscribe [::db/realtime-value {:path messages-path}])]
-    [:div {:class "w-full h-screen bg-gray-300"}
-     [:div {:class "p-2 clearfix"}
+    [:div {:class "h-screen"}
+     [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
+      [:div {:class "block"}
       [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
-      [:div {:class "float-right"}[auth-display user]]]
+      [:div {:class "float-right"} [auth-display user]]
+    ]
+     
      (when user
        (if db-connected?
-         [:div {:class "p-6"}
+         [:div {:class "p-2"}
           (if (channel-name-ready? {:channel channel :name name})
             [:div
              [add-channel (fn [channel-name]
@@ -128,6 +132,12 @@
                              [::db/push {:value (:channel channel-name)
                                          :path channels-path}])
                             (rf/dispatch [:channel-name channel-name]))]]
-            [:div
-             [:div [messages-list messages-path messages]]])]
-         [:div "Loading.."]))]))
+            ; this is the main panel
+            [:div {:class "grid grid-cols-2 divide-x divide-black"}
+             [:div {:class "p-4"}
+              [messages-list name messages-path messages]]
+             [:div [:p "This is more content"]]
+            ]
+          )
+        ]
+         [:div "Loading.."]))]]))
