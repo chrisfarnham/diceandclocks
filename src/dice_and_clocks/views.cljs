@@ -166,9 +166,10 @@
 )
 
 (defn channels-path [channel]
-  [:channels channel])
+  [:channels (str channel)])
 
 (defn messages-path [channel]
+  (println (str "channel: " channel))
   (conj (channels-path channel) :messages))
 
 (defn main-panel []
@@ -196,7 +197,7 @@
               [add-channel (fn [channel-name]
                              (rf/dispatch
                               [::db/push {:value (:channel channel-name)
-                                          :path channels-path}])
+                                          :path (channels-path (:channel channel-name))}])
                              (rf/dispatch [:channel-name channel-name]))]]
             ; this is the main panel
              [:div {:class "grid grid-cols-2 divide-x divide-black"}
