@@ -56,10 +56,16 @@
                          (persist-channel-name @new-channel-name)
                          (reset! new-channel-name {:channel "" :name ""}))} "Create"]]]))
 
+
+
 (defmulti display-message (fn [message] (:message-type message)))
 
 (defmethod display-message :default [message]
   (println (str "display-message: " message))
+)
+
+(defn create-message [name message]
+  {:message-type "message" :sender name :text message}
 )
 
 (defmethod display-message "message" [message]
@@ -68,7 +74,12 @@
    [:div {:class "test"} (str sender " - " text)]]))
 
 
-(defn add-message [persist-message]
+(defn add-message [context]
+  (let [{:keys [messages-path name]} context]
+  (letfn [(persist-message [message]
+            (rf/dispatch
+             [::db/push {:value (create-message name message)
+                         :path messages-path}]))]
   (r/with-let [new-message (r/atom nil)]
   [:<>
          [:input {:type  :text
@@ -81,7 +92,7 @@
                :on-click (fn []
                            (persist-message @new-message)
                            (reset! new-message nil))} "Send"]
-  ])
+  ])))
 )
 
 (defn mark-deleted 
@@ -99,10 +110,7 @@
   [:<>
   [:div {:class "rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100"}
   [:div {:class "p-2"}
-  [add-message (fn [message]
-                  (rf/dispatch
-                  [::db/push {:value {:message-type :message :sender name :text message}
-                              :path messages-path}]))]]
+  [add-message context]]
 
   [:div {:class "grid grid-cols-1 gap-1 p-1"}
    [:div {:class "mx-2"} [:p {:class "float-left prose prose-l"} "Events"]]
