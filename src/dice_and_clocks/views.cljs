@@ -55,7 +55,17 @@
                          (persist-channel-name @new-channel-name)
                          (reset! new-channel-name {:channel "" :name ""}))} "Create"]]]))
 
+(def int-dice-map 
+  {1 "fas fa-dice-one"
+   2 "fas fa-dice-two"
+   3 "fas fa-dice-three"
+   4 "fas fa-dice-four"
+   5 "fas fa-dice-five"
+   6 "fas fa-dice-six"})
 
+(defn int-to-dice [die-result]
+  (let [die-class (get int-dice-map die-result)]
+  [:<>[:i {:class (str die-class " text-4xl m-1")}]]))
 
 (defmulti display-message (fn [message] (:message-type message)))
 
@@ -66,10 +76,14 @@
 
 (defmethod display-message "dice-roll" [message]
   (let [{:keys [sender result pool text size]} message]
-    [:div {:class "message"}
-     [:div {:class ""}
-      "here is my message" [:br]
-      (str "[" (string/join " " pool) "] - " sender " rolled a " result " (" size " dice)"  )
+    [:div {:class "overflow-visible"}
+      (str "\"" text "\"") [:br]
+     [:span {:class "inline-block align-middle"}
+      (str sender " rolled ")
+      [:span {:class "inline-block align-bottom"}
+      (map-indexed (fn [index item] ^{:key index} (int-to-dice item)) pool)]
+      " for a result of " [:span {:class "text-4xl"} (str result)]
+      (str " (" size " dice)"  )
       ]]))
 
 (defmethod display-message :default [message]
@@ -89,7 +103,7 @@
   (let  [[id {:keys [text sender] :as m}] message
          {:keys [messages-path]} context]
     ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
-    [:div {:class "bg-gray-500 h-12 rounded-md flex p-2 relative"}
+    [:div {:class "bg-gray-500 min-h-12 rounded-md flex p-2 relative"}
      [display-message m]
      [:div {:class "absolute right-2"}
       [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]]]))
@@ -119,14 +133,24 @@
                                                  (generate-dice-results (:size @dice-roll)))) 
                  (reset! dice-roll proto-dice-roll))]
       [:<>
-       [:div {:class "bg-gray-300"}
+       [:div {:class "bg-gray-300 p-3"}
+
         [:button {:class button-class
                   :on-click (fn [] (decrement))} "-"]
         (str (:size @dice-roll))
         [:button {:class button-class
                   :on-click (fn [] (increment))} "+"]
+        [:br]
+        ;  :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))
+        [:input {:type :text
+            :class text-input-class
+            :value (:text @dice-roll)
+            :placeholder ""
+            :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))
+                 }]
         [:button {:class button-class
-                  :on-click (fn [] (roll))} "Roll"]]])))
+                  :on-click (fn [] (roll))} "Roll"]
+      ]])))
 
 
 (defn add-message [context]
@@ -155,14 +179,17 @@
   (let [messages (reverse (:messages context))]
   [:<>
   [:div {:class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100"}
-  [:div {:class "p-2"} [add-message context]]
+  ;[:div {:class "p-2"} [add-message context]]
   [:div {:class "p-2"} [roll-dice context]]
-  [:div {:class "overflow-scroll grid grid-cols-1 gap-1 p-1"}
-   [:div {:class "mx-2"} [:p {:class "float-left prose prose-l"} "Events"]]
+  [:div {:class "grid grid-flow-row grid-cols-1"}
+   [:div {:class "mx-2"} 
+    [:span {:class "float-left text-2xl prose prose-l"} "Events" ]
+    [:span {:class "float-right w-3/4"} [:div {:class "text-right"}[add-message context]]]]
+   [:div {:class "overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1"}
    (->> messages
         (remove (fn [[_ {:keys [deleted?]}]] deleted?))
         (map #(message-container context %)))
-   ]]])
+   ]]]])
 )
 
 (defn channels-path [channel]
