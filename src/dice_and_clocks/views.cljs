@@ -31,10 +31,9 @@
 (defn channel-name-ready? [channel-name]
   (some string/blank? (vals channel-name)))
 
-
 (defn add-channel [persist-channel-name]
   (r/with-let [new-channel-name (r/atom {:channel "" :name ""})]
-  [:div {:class "space-y-4 w-4 self-center items-center"}
+  [:div {:class "space-y-4 w-1/2 self-center items-center"}
    [:span {:class "block"} "Start"]
    [:span {:class "block" }
     
@@ -57,6 +56,18 @@
                          (persist-channel-name @new-channel-name)
                          (reset! new-channel-name {:channel "" :name ""}))} "Create"]]]))
 
+(defmulti display-message (fn [message] (:message-type message)))
+
+(defmethod display-message :default [message]
+  (println (str "display-message: " message))
+)
+
+(defmethod display-message "message" [message]
+  (let [{:keys [sender text] } message]
+  [:div {:class "message"}
+   [:div {:class "test"} (str sender " - " text)]]))
+
+
 (defn add-message [persist-message]
   (r/with-let [new-message (r/atom nil)]
   [:<>
@@ -70,9 +81,8 @@
                :on-click (fn []
                            (persist-message @new-message)
                            (reset! new-message nil))} "Send"]
-    ])
-  )
-
+  ])
+)
 
 (defn mark-deleted 
   "`message-path` includes the message-id"
@@ -81,47 +91,64 @@
     [::db/push {:value true
                 :path  (conj message-path :deleted?)}]))
 
-(defn messages-list [name messages-path messages]
-  (let [messages (reverse messages)]
+(defn messages-list [context]
+  (let [messages (reverse (:messages context))
+        messages-path (:messages-path context)
+        name (:name context)]
     
   [:<>
   [:div {:class "rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100"}
-  [:div {:class "pt-0"}
+  [:div {:class "p-2"}
   [add-message (fn [message]
                   (rf/dispatch
                   [::db/push {:value {:message-type :message :sender name :text message}
-                              :path  messages-path}]))]]
+                              :path messages-path}]))]]
 
-  [:div {:class "grid grid-cols-1 gap-1"}
+  [:div {:class "grid grid-cols-1 gap-1 p-1"}
    [:div {:class "mx-2"} [:p {:class "float-left prose prose-l"} "Events"]]
    (->> messages
         (remove (fn [[_ {:keys [deleted?]}]]
                   deleted?))
-        (map (fn [[id {:keys [text sender]}]]
-               ^{:key id}
-               [:div {:class "mx-2 bg-gray-500 h-12 rounded-md flex p-2 relative"}
-                [:div {:class ""} (str sender " - " text)]
+        (map (fn [[id {:keys [text sender] :as message}]]
+               ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
+               [:div {:class "bg-gray-500 h-12 rounded-md flex p-2 relative"}
+                [display-message message]
+                ;; [:div {:class "message"}
+                ;; [:div {:class ""} (str sender " - " text)]
+                ;; ]
                 [:div {:class "absolute right-2"}
                  [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]
                  ]]
-            )))]]]))
+            )
+        )
+    )
+   ]]]))
 
+(defn channels-path [channel]
+  [:channels channel])
+
+(defn messages-path [channel]
+  (conj (channels-path channel) :messages)
+)
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
         user @(rf/subscribe [::auth/user-auth])
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
-        channels-path [:channels channel]
-        messages-path (conj channels-path :message)
-        messages @(rf/subscribe [::db/realtime-value {:path messages-path}])]
+        messages @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}])
+        context {:name name 
+                 :user user 
+                 :channel channel 
+                 :messages messages
+                 :channels-path (channels-path channel)
+                 :messages-path (messages-path channel)}]
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
       [:div {:class "block"}
-      [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
-      [:div {:class "float-right"} [auth-display user]]
-    ]
-     
+       [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
+       [:div {:class "float-right"} [auth-display user]]]
+
      (when user
        (if db-connected?
          [:div {:class "p-2"}
@@ -135,7 +162,7 @@
             ; this is the main panel
             [:div {:class "grid grid-cols-2 divide-x divide-black"}
              [:div {:class "mr-2"}
-              [messages-list name messages-path messages]]
+              [messages-list context]]
              
              [:div {:class ""} [:p {:class "ml-2"}"This is more content"]]
             ]
