@@ -42,7 +42,6 @@
             :value (:channel @new-channel-name)
             :placeholder "Channel Name"
             :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]]
-   
    [:span {:class "block"}
     [:input {:type :text
             :class text-input-class
@@ -60,18 +59,74 @@
 
 (defmulti display-message (fn [message] (:message-type message)))
 
-(defmethod display-message :default [message]
-  (println (str "display-message: " message))
-)
-
-(defn create-message [name message]
-  {:message-type "message" :sender name :text message}
-)
-
 (defmethod display-message "message" [message]
   (let [{:keys [sender text] } message]
   [:div {:class "message"}
-   [:div {:class "test"} (str sender " - " text)]]))
+   [:div {:class ""} (str sender " - " text)]]))
+
+(defmethod display-message "dice-roll" [message]
+  (let [{:keys [sender result pool text size]} message]
+    [:div {:class "message"}
+     [:div {:class ""}
+      "here is my message" [:br]
+      (str "[" (string/join " " pool) "] - " sender " rolled a " result " (" size " dice)"  )
+      ]]))
+
+(defmethod display-message :default [message]
+  (println (str "display-message: " message)))
+
+(defn create-message [name message]
+  {:message-type "message" :sender name :text message})
+
+
+(defn mark-deleted
+  "`message-path` includes the message-id"
+  [message-path]
+  (rf/dispatch
+   [::db/push {:value true :path  (conj message-path :deleted?)}]))
+
+(defn message-container [context message]
+  (let  [[id {:keys [text sender] :as m}] message
+         {:keys [messages-path]} context]
+    ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
+    [:div {:class "bg-gray-500 h-12 rounded-md flex p-2 relative"}
+     [display-message m]
+     [:div {:class "absolute right-2"}
+      [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]]]))
+
+(defn generate-dice-results [size]
+  (let [pool-size (if (< size 1) 2 size)
+        pool (repeatedly pool-size #(+ 1 (rand-int 6)))
+        result (if (< size 1) (apply min pool) (apply max pool))
+        ; zero size dice pools cannot result in crits
+        critical (and (< 0 size) (< 1 (count (filter #(= 6 %) pool))))]
+    {:pool (vec pool) :result result :size size :critical critical}))
+
+(defn persist-roll [context dice-results]
+  (rf/dispatch [::db/push {:path (:messages-path context) 
+                           :value (merge dice-results
+                                         {:sender (:name context)
+                                          :message-type "dice-roll"})}])
+)
+
+(def proto-dice-roll {:size 0 :position "" :effect "" :text ""})
+
+(defn roll-dice [context]
+  (r/with-let [dice-roll (r/atom proto-dice-roll)]
+    (letfn [(increment [] (when (< (:size @dice-roll) 9) (swap! dice-roll assoc :size (inc (:size @dice-roll)))))
+            (decrement [] (when (< 0 (:size @dice-roll)) (swap! dice-roll assoc :size (dec (:size @dice-roll)))))
+            (roll[] (persist-roll context (merge @dice-roll 
+                                                 (generate-dice-results (:size @dice-roll)))) 
+                 (reset! dice-roll proto-dice-roll))]
+      [:<>
+       [:div {:class "bg-gray-300"}
+        [:button {:class button-class
+                  :on-click (fn [] (decrement))} "-"]
+        (str (:size @dice-roll))
+        [:button {:class button-class
+                  :on-click (fn [] (increment))} "+"]
+        [:button {:class button-class
+                  :on-click (fn [] (roll))} "Roll"]]])))
 
 
 (defn add-message [context]
@@ -95,49 +150,26 @@
   ])))
 )
 
-(defn mark-deleted 
-  "`message-path` includes the message-id"
-  [message-path]
-  (rf/dispatch
-    [::db/push {:value true
-                :path  (conj message-path :deleted?)}]))
 
 (defn messages-list [context]
-  (let [messages (reverse (:messages context))
-        messages-path (:messages-path context)
-        name (:name context)]
-    
+  (let [messages (reverse (:messages context))]
   [:<>
-  [:div {:class "rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-gray-100"}
-  [:div {:class "p-2"}
-  [add-message context]]
-
-  [:div {:class "grid grid-cols-1 gap-1 p-1"}
+  [:div {:class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100"}
+  [:div {:class "p-2"} [add-message context]]
+  [:div {:class "p-2"} [roll-dice context]]
+  [:div {:class "overflow-scroll grid grid-cols-1 gap-1 p-1"}
    [:div {:class "mx-2"} [:p {:class "float-left prose prose-l"} "Events"]]
    (->> messages
-        (remove (fn [[_ {:keys [deleted?]}]]
-                  deleted?))
-        (map (fn [[id {:keys [text sender] :as message}]]
-               ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
-               [:div {:class "bg-gray-500 h-12 rounded-md flex p-2 relative"}
-                [display-message message]
-                ;; [:div {:class "message"}
-                ;; [:div {:class ""} (str sender " - " text)]
-                ;; ]
-                [:div {:class "absolute right-2"}
-                 [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]
-                 ]]
-            )
-        )
-    )
-   ]]]))
+        (remove (fn [[_ {:keys [deleted?]}]] deleted?))
+        (map #(message-container context %)))
+   ]]])
+)
 
 (defn channels-path [channel]
   [:channels channel])
 
 (defn messages-path [channel]
-  (conj (channels-path channel) :messages)
-)
+  (conj (channels-path channel) :messages))
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
@@ -156,24 +188,21 @@
       [:div {:class "block"}
        [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
        [:div {:class "float-right"} [auth-display user]]]
-
-     (when user
-       (if db-connected?
-         [:div {:class "p-2"}
-          (if (channel-name-ready? {:channel channel :name name})
-            [:div
-             [add-channel (fn [channel-name]
-                            (rf/dispatch
-                             [::db/push {:value (:channel channel-name)
-                                         :path channels-path}])
-                            (rf/dispatch [:channel-name channel-name]))]]
+      (when user
+        (if db-connected?
+          [:div {:class "p-2"}
+           (if (channel-name-ready? {:channel channel :name name})
+             [:div
+              [add-channel (fn [channel-name]
+                             (rf/dispatch
+                              [::db/push {:value (:channel channel-name)
+                                          :path channels-path}])
+                             (rf/dispatch [:channel-name channel-name]))]]
             ; this is the main panel
-            [:div {:class "grid grid-cols-2 divide-x divide-black"}
-             [:div {:class "mr-2"}
-              [messages-list context]]
-             
-             [:div {:class ""} [:p {:class "ml-2"}"This is more content"]]
-            ]
-          )
-        ]
-         [:div "Loading.."]))]]))
+             [:div {:class "grid grid-cols-2 divide-x divide-black"}
+              [:div {:class "mr-2"}
+               [messages-list context]]
+              [:div {:class ""} [:p {:class "ml-2"} "This is more content"]]])]
+          ; if db not connected
+          [:div "Loading.."]
+        ))]]))
