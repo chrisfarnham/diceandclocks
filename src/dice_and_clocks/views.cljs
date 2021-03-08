@@ -90,7 +90,7 @@
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
-         [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]])
+         [:button {:class "text-white" :on-click #(mark-deleted (conj messages-path id))} "x"]])
     ]))
 
 (defmulti display-message (fn [_ message] (:message-type message)))
@@ -172,7 +172,8 @@
         [:input {:type :text
             :class text-input-class
             :value (:text @dice-roll)
-            :placeholder ""
+            :placeholder "Roll caption"
+            :maxlength "100"
             :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))
                  }]
         [:button {:class button-class
@@ -191,6 +192,8 @@
          [:input {:type  :text
               :class text-input-class
               :value @new-message
+              :placeholder "Message"
+              :maxlength "100"
               :on-change
               (fn [^js e] (reset! new-message (.. e -target -value)))}]
      [:button {:disabled (string/blank? @new-message)
@@ -216,10 +219,9 @@
   [:div {:class content-box-class}
   [:div {:class "p-2"} [roll-dice context]]
   [:div {:class "grid grid-flow-row grid-cols-1"}
-   [:div {:class "mx-2"} 
-    [:span {:class "float-left text-2xl prose prose-l"} "Events" ]
-    [:span {:class "float-right w-3/4"} [:div {:class "text-right"}[add-message context]]]]
-   [:div {:class "overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1"}
+   [:div {:class "mx-2 p-2 bg-gray-300"} 
+    [:span {:class "float-left w-full"} [:div {:class ""}[add-message context]]]]
+   [:div {:class "overscroll-auto overflow-auto max-h-96 grid m-1 gap-1 p-1"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
@@ -242,21 +244,21 @@
   (let [{:keys [clock-channel]} context
         {:keys [key tic id caption creator]} clock]
     ^{:key id}
-    [:div {:class "pt-4"}
-     [:div {:class "text-lg prose prose-m"} caption]
+    [:div {:class "bg-gray-200"}
+    [:div {:class "h-full m-px p-2 overflow-hidden bg-gray-300"}
      [:img  {:class "w-14" :src (str "images/clocks/" (clocks/get-face key tic))}]
-     [:div {:class "text-xs"} creator]]
+     [:div {:class "text-lg prose prose-m"} caption]
+     [:div {:class "text-xs"} creator]]]
 ))
-
+; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
 (defn display-clocks [context]
   (let [{:keys [clocks]} context
          clocks (reverse clocks)
          clocks (->> clocks (map process-message))]
   [:div {:class content-box-class}
    [:div {:class "p-2"}
-     ; [:div {:class "p-3 float-left text-2xl prose prose-l"} "Clocks"]
      [:div {:class "bg-gray-300 p-3"}
-   [:div {:class "grid grid-cols-3 flex relative"}
+   [:div {:class "overscroll-auto overflow-auto max-h-96 grid grid grid-cols-3 flex relative"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))
@@ -274,6 +276,7 @@
               :class text-input-class
               :value @caption
               :placeholder "Clock caption"
+              :maxlength "100"
               :on-change
               (fn [^js e] (reset! caption (.. e -target -value)))}]
      [:div {:class "grid grid-cols-12 p-2"}
