@@ -78,38 +78,45 @@
   (rf/dispatch
    [::db/push {:value true :path  (conj message-path :deleted?)}]))
 
-(defn message-container
-  ([context message display]
-   (message-container context message display true))
-  ([context message display deleteable?]
+;; (defn string->integer [s & {:keys [base] :or {base 10}}]
+;;   (Integer/parseInt s base))
+
+(defn message-container [context message display & {:keys [deleteable?] :or {deleteable? true}}]
    (let  [{:keys [id]} message
           {:keys [messages-path]} context]
+    (println (str "deleteable is " deleteable?))
      ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
      [:div {:class "bg-gray-500 min-h-12 rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
-         [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]])])))
+         [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]])
+    ]))
 
-(defmulti display-message (fn [context message] (:message-type message)))
+(defmulti display-message (fn [_ message] (:message-type message)))
 
 (defmethod display-message "message" [context message]
   (let [{:keys [sender text] } message]
-  (println "regular message!")
   (message-container context message (fn []
   [:div {:class "message"}
    [:div {:class ""} (str sender " - " text)]]))
   ))
+
 (defmethod display-message "clock-event" [context message]
-  (let [{:keys [sender text]} message]
-    (println "clock message!")
-    (message-container context message (fn []
-                                         [:div {:class "message"}
-                                          [:div {:class ""} (str sender " - " text)]]))))
+  (let [{:keys [sender text caption key tic]} message]
+    (println message)
+    (message-container
+     context message
+     (fn []
+       [:div {:class ""}
+        [:span {:class ""} (str "\"" caption "\"")]
+        [:div {:class "space-x-4"}
+         [:span {:class "inline-block"} (str sender " " text)]
+         [:span {:class "inline-block"} [:img {:class "inline w-8" :src (str "images/clocks/" (clocks/get-face key tic))}]]]]) 
+     :deleteable? false)))
 
 (defmethod display-message "dice-roll" [context message]
   (let [{:keys [id sender result pool text size]} message]
-    (println "displaying message")
     (message-container context message (fn []
     [:div {:class "overflow-visible"}
      (when (not (string/blank? text))
@@ -124,7 +131,7 @@
 )))
 
 (defmethod display-message :default [context message]
-  (println (str "display-message: " message)))
+  (println (str "default display-message: " message)))
 
 (defn create-message [name message]
   {:message-type "message" :sender name :text message})
@@ -221,19 +228,41 @@
          )]]]]
 ))
 
-;;  (rf/dispatch
-;;   [::db/push {:value (:channel channel-name)
-;;               :path (channels-path (:channel channel-name))}])
 (defn create-clock [context key caption]
-  (let [{:keys [name messages-path clocks-path]} context
-        clock {:key key :creator name :caption caption :tic 0 :order 0}
-        clock-message {:message-type "clock-event" :sender name :text "created clock"}
+  (let [{:keys [name messages-path clocks-path clock-count]} context
+        clock {:key key :creator name :caption caption :tic 0 :order clock-count}
+        clock-message {:message-type "clock-event" :sender name :text "created a new clock"}
         clock-message (merge clock-message clock)]
 
     (rf/dispatch [::db/push {:path clocks-path :value clock}])
     (rf/dispatch [::db/push {:path messages-path :value clock-message}])
 ))
 
+(defn display-clock [context clock]
+  (let [{:keys [clock-channel]} context
+        {:keys [key tic id caption creator]} clock]
+    ^{:key id}
+    [:div {:class "pt-4"}
+     [:div {:class "text-lg prose prose-m"} caption]
+     [:img  {:class "w-14" :src (str "images/clocks/" (clocks/get-face key tic))}]
+     [:div {:class "text-xs"} creator]]
+))
+
+(defn display-clocks [context]
+  (let [{:keys [clocks]} context
+         clocks (reverse clocks)
+         clocks (->> clocks (map process-message))]
+  [:div {:class content-box-class}
+   [:div {:class "p-2"}
+     ; [:div {:class "p-3 float-left text-2xl prose prose-l"} "Clocks"]
+     [:div {:class "bg-gray-300 p-3"}
+   [:div {:class "grid grid-cols-3 flex relative"}
+        (->> clocks
+         (remove (fn [{:keys [deleted?]}] deleted?))
+         (map (fn [clock] (display-clock context clock))))
+    ]
+  ]]]
+))
 
 (defn clocks-list [context]
   (r/with-let [caption (r/atom "")]
@@ -241,19 +270,18 @@
   [:div {:class content-box-class}
    [:div {:class "p-2"}
     [:div {:class "bg-gray-300 p-3"}
-    [:input {:type  :text
-            :class text-input-class
-            :value @caption
-            :placeholder "Clock caption"
-            :on-change
-            (fn [^js e] (reset! caption (.. e -target -value)))}]
+     [:input {:type  :text
+              :class text-input-class
+              :value @caption
+              :placeholder "Clock caption"
+              :on-change
+              (fn [^js e] (reset! caption (.. e -target -value)))}]
      [:div {:class "grid grid-cols-12 p-2"}
       (map (fn [{:keys [key face]} _]
-                     ^{:key key} [:button {:on-click #(click-clock key)}
-                                   [:img {:class "w-8" :src (str "images/clocks/" face)}]])
-                   clocks/clock-types)
-      ]
-     ]]]
+             ^{:key key} [:button {:on-click #(click-clock key)}
+                          [:img {:class "w-8" :src (str "images/clocks/" face)}]])
+           clocks/clock-types)]]]
+    [display-clocks context]]
   )))
 
 (defn channels-path [channel]
@@ -272,10 +300,13 @@
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
         messages @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}])
+        clocks @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}])
         context {:name name 
                  :user user 
                  :channel channel 
                  :messages messages
+                 :clocks clocks
+                 :clock-count (count clocks)
                  :channels-path (channels-path channel)
                  :messages-path (messages-path channel)
                  :clocks-path (clocks-path channel)}]

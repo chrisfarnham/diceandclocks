@@ -15,7 +15,12 @@
 
 (def clock-types (map (fn [{:keys [key faces]} _] {:key key :face (second faces)}) clocks))
 
-
+(defn get-face [key tic]
+  (let [key (keyword key)]
+  (get (:faces (first (filter #(= key (:key %)) clocks))) tic)
+))
+; (keyword :test)
+; (get-face :four-b 1)
 ; (keys clocks)
 ; (map {keys})
 ; (reduce-kv (fn [m k v] (assoc m k (second v))) {} clocks)
