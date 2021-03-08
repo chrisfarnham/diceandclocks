@@ -7,7 +7,7 @@
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
    [dice-and-clocks.subs :as subs]
-   [dice-and-clocks.config :as config]
+   [dice-and-clocks.clocks :as clocks]
    ))
 
 
@@ -63,34 +63,13 @@
    5 "fas fa-dice-five"
    6 "fas fa-dice-six"})
 
-(defn int-to-dice [die-result]
-  (let [die-class (get int-dice-map die-result)]
-  [:<>[:i {:class (str die-class " text-4xl m-1")}]]))
+(defn int-to-dice 
+  ([die-result]
+   (int-to-dice die-result nil))
+  ([die-result id]
+   (let [die-class (get int-dice-map die-result)]
+     ^{:key id}[:i {:class (str die-class " text-4xl m-1")}])))
 
-(defmulti display-message (fn [message] (:message-type message)))
-
-(defmethod display-message "message" [message]
-  (let [{:keys [sender text] } message]
-  [:div {:class "message"}
-   [:div {:class ""} (str sender " - " text)]]))
-
-(defmethod display-message "dice-roll" [message]
-  (let [{:keys [sender result pool text size]} message]
-    [:div {:class "overflow-visible"}
-      (str "\"" text "\"") [:br]
-     [:span {:class "inline-block align-middle"}
-      (str sender " rolled ")
-      [:span {:class "inline-block align-bottom"}
-      (map-indexed (fn [index item] ^{:key index} (int-to-dice item)) pool)]
-      " for a result of " [:span {:class "text-4xl"} (str result)]
-      (str " (" size " dice)"  )
-      ]]))
-
-(defmethod display-message :default [message]
-  (println (str "display-message: " message)))
-
-(defn create-message [name message]
-  {:message-type "message" :sender name :text message})
 
 
 (defn mark-deleted
@@ -99,14 +78,56 @@
   (rf/dispatch
    [::db/push {:value true :path  (conj message-path :deleted?)}]))
 
-(defn message-container [context message]
-  (let  [[id {:keys [text sender] :as m}] message
-         {:keys [messages-path]} context]
-    ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
-    [:div {:class "bg-gray-500 min-h-12 rounded-md flex p-2 relative"}
-     [display-message m]
-     [:div {:class "absolute right-2"}
-      [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]]]))
+(defn message-container
+  ([context message display]
+   (message-container context message display true))
+  ([context message display deleteable?]
+   (let  [{:keys [id]} message
+          {:keys [messages-path]} context]
+     ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
+     [:div {:class "bg-gray-500 min-h-12 rounded-md flex p-2 relative"}
+      (display)
+      (when deleteable?
+        [:div {:class "absolute right-2"}
+         [:button {:class "" :on-click #(mark-deleted (conj messages-path id))} "x"]])])))
+
+(defmulti display-message (fn [context message] (:message-type message)))
+
+(defmethod display-message "message" [context message]
+  (let [{:keys [sender text] } message]
+  (println "regular message!")
+  (message-container context message (fn []
+  [:div {:class "message"}
+   [:div {:class ""} (str sender " - " text)]]))
+  ))
+(defmethod display-message "clock-event" [context message]
+  (let [{:keys [sender text]} message]
+    (println "clock message!")
+    (message-container context message (fn []
+                                         [:div {:class "message"}
+                                          [:div {:class ""} (str sender " - " text)]]))))
+
+(defmethod display-message "dice-roll" [context message]
+  (let [{:keys [id sender result pool text size]} message]
+    (println "displaying message")
+    (message-container context message (fn []
+    [:div {:class "overflow-visible"}
+     (when (not (string/blank? text))
+       [:span (str "\"" text "\"") [:br]])
+     [:span {:class "inline-block align-middle"}
+      (str sender " rolled ")
+      [:span {:class "inline-block align-bottom"}
+      (map-indexed (fn [index item] (int-to-dice item (str id "-" index))) pool)]
+      " for a result of " [:span {:class "text-4xl"} (str result)]
+      (str " (" size " dice)"  )
+      ]])
+)))
+
+(defmethod display-message :default [context message]
+  (println (str "display-message: " message)))
+
+(defn create-message [name message]
+  {:message-type "message" :sender name :text message})
 
 (defn generate-dice-results [size]
   (let [pool-size (if (< size 1) 2 size)
@@ -141,7 +162,6 @@
         [:button {:class button-class
                   :on-click (fn [] (increment))} "+"]
         [:br]
-        ;  :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))
         [:input {:type :text
             :class text-input-class
             :value (:text @dice-roll)
@@ -174,30 +194,77 @@
   ])))
 )
 
+(def content-box-class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100")
+
+(defn process-message
+  "Destructure the id and add it to the message map as a field"
+[message]
+(let [[id  message] message] (assoc message :id id))
+)
 
 (defn messages-list [context]
-  (let [messages (reverse (:messages context))]
+  (let [messages (reverse (:messages context))
+        messages (->> messages (map process-message))]
   [:<>
-  [:div {:class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100"}
-  ;[:div {:class "p-2"} [add-message context]]
+  [:div {:class content-box-class}
   [:div {:class "p-2"} [roll-dice context]]
   [:div {:class "grid grid-flow-row grid-cols-1"}
    [:div {:class "mx-2"} 
     [:span {:class "float-left text-2xl prose prose-l"} "Events" ]
     [:span {:class "float-right w-3/4"} [:div {:class "text-right"}[add-message context]]]]
    [:div {:class "overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1"}
-   (->> messages
-        (remove (fn [[_ {:keys [deleted?]}]] deleted?))
-        (map #(message-container context %)))
-   ]]]])
-)
+
+    (->> messages
+         (remove (fn [{:keys [deleted?]}] deleted?))
+         ;(map (fn [message] [:p "Message would go here!"]))
+         (map (fn [message] (display-message context message)))
+         )]]]]
+))
+
+;;  (rf/dispatch
+;;   [::db/push {:value (:channel channel-name)
+;;               :path (channels-path (:channel channel-name))}])
+(defn create-clock [context key caption]
+  (let [{:keys [name messages-path clocks-path]} context
+        clock {:key key :creator name :caption caption :tic 0 :order 0}
+        clock-message {:message-type "clock-event" :sender name :text "created clock"}
+        clock-message (merge clock-message clock)]
+
+    (rf/dispatch [::db/push {:path clocks-path :value clock}])
+    (rf/dispatch [::db/push {:path messages-path :value clock-message}])
+))
+
+
+(defn clocks-list [context]
+  (r/with-let [caption (r/atom "")]
+  (letfn [(click-clock [clock-key] (create-clock context clock-key @caption)(reset! caption ""))]
+  [:div {:class content-box-class}
+   [:div {:class "p-2"}
+    [:div {:class "bg-gray-300 p-3"}
+    [:input {:type  :text
+            :class text-input-class
+            :value @caption
+            :placeholder "Clock caption"
+            :on-change
+            (fn [^js e] (reset! caption (.. e -target -value)))}]
+     [:div {:class "grid grid-cols-12 p-2"}
+      (map (fn [{:keys [key face]} _]
+                     ^{:key key} [:button {:on-click #(click-clock key)}
+                                   [:img {:class "w-8" :src (str "images/clocks/" face)}]])
+                   clocks/clock-types)
+      ]
+     ]]]
+  )))
 
 (defn channels-path [channel]
-  [:channels (str channel)])
+  [:channels (keyword channel)])
 
 (defn messages-path [channel]
-  (println (str "channel: " channel))
   (conj (channels-path channel) :messages))
+
+(defn clocks-path [channel]
+  (conj (channels-path channel) :clocks))
+
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
@@ -210,7 +277,8 @@
                  :channel channel 
                  :messages messages
                  :channels-path (channels-path channel)
-                 :messages-path (messages-path channel)}]
+                 :messages-path (messages-path channel)
+                 :clocks-path (clocks-path channel)}]
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
       [:div {:class "block"}
@@ -230,7 +298,9 @@
              [:div {:class "grid grid-cols-2 divide-x divide-black"}
               [:div {:class "mr-2"}
                [messages-list context]]
-              [:div {:class ""} [:p {:class "ml-2"} "This is more content"]]])]
+              [:div {:class "ml-2"} 
+               [clocks-list context]
+               ]])]
           ; if db not connected
           [:div "Loading.."]
         ))]]))
