@@ -11,7 +11,6 @@
    ))
 
 
-
 (def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-1/2")
 
 (def button-class "bg-grey-500 p-1 m-1 border-2 border-black")
@@ -84,7 +83,6 @@
 (defn message-container [context message display & {:keys [deleteable?] :or {deleteable? true}}]
    (let  [{:keys [id]} message
           {:keys [messages-path]} context]
-    (println (str "deleteable is " deleteable?))
      ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
      [:div {:class "bg-gray-500 min-h-12 rounded-md flex p-2 relative"}
       (display)
@@ -104,7 +102,6 @@
 
 (defmethod display-message "clock-event" [context message]
   (let [{:keys [sender text caption key tic]} message]
-    (println message)
     (message-container
      context message
      (fn []
@@ -130,7 +127,7 @@
       ]])
 )))
 
-(defmethod display-message :default [context message]
+(defmethod display-message :default [_ message]
   (println (str "default display-message: " message)))
 
 (defn create-message [name message]
@@ -173,7 +170,7 @@
             :class text-input-class
             :value (:text @dice-roll)
             :placeholder "Roll caption"
-            :maxlength "100"
+            :max-length "100"
             :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))
                  }]
         [:button {:class button-class
@@ -193,7 +190,7 @@
               :class text-input-class
               :value @new-message
               :placeholder "Message"
-              :maxlength "100"
+              :max-length "100"
               :on-change
               (fn [^js e] (reset! new-message (.. e -target -value)))}]
      [:button {:disabled (string/blank? @new-message)
@@ -276,7 +273,7 @@
               :class text-input-class
               :value @caption
               :placeholder "Clock caption"
-              :maxlength "100"
+              :max-length "100"
               :on-change
               (fn [^js e] (reset! caption (.. e -target -value)))}]
      [:div {:class "grid grid-cols-12 p-2"}
