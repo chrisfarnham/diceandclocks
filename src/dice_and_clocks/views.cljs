@@ -248,32 +248,36 @@
     (rf/dispatch [::db/push {:path messages-path :value clock-message}])
 ))
 
-
-;; (defn mark-deleted
-;;   "`message-path` includes the message-id"
-;;   [message-path]
-;;   (rf/dispatch
-;;    [::db/push {:value true :path  (conj message-path :deleted?)}]))
-
-
 (def clock-button-class "px-1 text-3xl font-extra-bold")
 
 (defn display-clock [context clock]
-  (let [{:keys [clocks-path]} context
+  (let [{:keys [clocks-path messages-path name]} context
         {:keys [key tic id caption creator]} clock
         this-clock-path (conj clocks-path id)
         clock-face (clocks/get-face key tic)]
   (letfn [(advance [] (when (< tic (clocks/max-index key))
-                        (rf/dispatch [::db/update {:value {:tic (+ tic 1)} :path this-clock-path}])))
+                        (let [clock  (update clock :tic inc)
+                              new-values {:tic (:tic clock)}
+                              clock-message {:message-type "clock-event" :sender name :text "advanced a clock"}
+                              clock-message (merge clock-message clock)]
+                        (rf/dispatch [::db/update {:path this-clock-path :value new-values}])
+                        (rf/dispatch [::db/push {:path messages-path :value clock-message}])
+                        )))
           (roll-back [] (when (< 0 tic)
-                          (rf/dispatch [::db/update {:value {:tic (- tic 1)} :path this-clock-path}])))]
+                        (let [clock  (update clock :tic dec)
+                              new-values {:tic (:tic clock)}
+                              clock-message {:message-type "clock-event" :sender name :text "rolled-back a clock"}
+                              clock-message (merge clock-message clock)]
+                          (rf/dispatch [::db/update {:path this-clock-path :value new-values}])
+                          (rf/dispatch [::db/push {:path messages-path :value clock-message}]))
+                          ))]
     ^{:key id}
     [:div {:class "bg-gray-200"}
     [:div {:class "h-full m-px p-2 overflow-hidden bg-gray-300"}
      [:img  {:class "w-14" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block"}
-      [:button {:class clock-button-class :on-click #(roll-back)} "-"]
-      [:button {:class clock-button-class :on-click #(advance)} "+"]]
+      [:button {:class clock-button-class :on-click #(advance)} "+"]
+      [:button {:class clock-button-class :on-click #(roll-back)} "-"]]
      [:div {:class "text-lg prose prose-m"} caption]
      [:div {:class "text-xs"} creator]
      ]]
