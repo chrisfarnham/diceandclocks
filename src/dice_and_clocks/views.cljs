@@ -11,7 +11,7 @@
    ))
 
 
-(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-1/2")
+(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
 
 (def button-class "bg-grey-500 p-1 m-1 border-2 border-black")
 
@@ -148,7 +148,20 @@
                                           :message-type "dice-roll"})}])
 )
 
-(def proto-dice-roll {:size 0 :position "" :effect "" :text ""})
+;; <button class="inline-flex items-center justify-center w-10 h-10 mr-2 text-indigo-100 transition-colors duration-150 bg-indigo-700 rounded-full focus:shadow-outline hover:bg-indigo-800">
+;;   <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+;; </button>
+
+(def little-div-class "h-3")
+(defn position-and-effect []
+  [:div {:class "container w-12 h-8 grid grid-cols-4"}
+   [:div {:class little-div-class}"O"][:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} ""]
+   [:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} ""]
+   [:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class (str "p-px " little-div-class)} "x"]
+  ]
+)
+
+(def proto-dice-roll {:size 0 :position nil :effect "" :text nil})
 
 (defn roll-dice [context]
   (r/with-let [dice-roll (r/atom proto-dice-roll)]
@@ -158,24 +171,30 @@
                                                  (generate-dice-results (:size @dice-roll)))) 
                  (reset! dice-roll proto-dice-roll))]
       [:<>
-       [:div {:class "bg-gray-300 p-3"}
-
-        [:button {:class button-class
-                  :on-click (fn [] (decrement))} "-"]
-        (str (:size @dice-roll))
-        [:button {:class button-class
-                  :on-click (fn [] (increment))} "+"]
-        [:br]
+       [:div {:class "bg-gray-300 grid grid-cols-2 grid-rows-1 p-3"}
+        [:div {:class "grid grid-cols-3"}
+        [:div {:class ""} ""]
+        [:div {:class "relative"}
+         [:div {:class "absolute inset-y-0 right-0"}
+         [:button {:class button-class
+                   :on-click (fn [] (decrement))} "-"]
+         (str (:size @dice-roll))
+         [:button {:class button-class
+                   :on-click (fn [] (increment))} "+"]]]
+         [position-and-effect]
+        ]
+        [:div {:class "relative"}
         [:input {:type :text
-            :class text-input-class
-            :value (:text @dice-roll)
-            :placeholder "Roll caption"
-            :max-length "100"
-            :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))
-                 }]
-        [:button {:class button-class
+                 :class (str text-input-class "")
+                 :value (:text @dice-roll)
+                 :placeholder "Roll caption"
+                 :max-length "100"
+                 :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))}]
+        [:button {:class (str "absolute inset-y-0 right-0" button-class)
                   :on-click (fn [] (roll))} "Roll"]
-      ]])))
+        ]]]
+       
+       )))
 
 
 (defn add-message [context]
@@ -197,20 +216,8 @@
                :class button-class
                :on-click (fn []
                            (persist-message @new-message)
-                           (reset! new-message nil))} "Send"]
-  ])))
+                           (reset! new-message nil))} "Send"]])))
 )
-;; Example from tutorial 13 is the Enter key
-;; (fn [{:keys [id class placeholder]}]
-;;       [:input {:type "text" :value @val
-;;                :id id :class class :placeholder placeholder
-;;                :on-blur save
-;;                :on-change #(reset! val (-> % .-target .-value))
-;;                :on-key-down #(case (.-which %)
-;;                                13 (save)
-;;                                27 (stop)
-;;                                nil)}])))
-
 
 (def content-box-class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100")
 
@@ -266,7 +273,7 @@
           (roll-back [] (when (< 0 tic)
                         (let [clock  (update clock :tic dec)
                               new-values {:tic (:tic clock)}
-                              clock-message {:message-type "clock-event" :sender name :text "rolled-back a clock"}
+                              clock-message {:message-type "clock-event" :sender name :text "rolled back a clock"}
                               clock-message (merge clock-message clock)]
                           (rf/dispatch [::db/update {:path this-clock-path :value new-values}])
                           (rf/dispatch [::db/push {:path messages-path :value clock-message}]))
@@ -282,6 +289,7 @@
      [:div {:class "text-xs"} creator]
      ]]
 )))
+
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
 (defn display-clocks [context]
   (let [{:keys [clocks]} context
