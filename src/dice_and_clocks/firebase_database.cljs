@@ -51,16 +51,15 @@
               (-> args
                   (update :path get-push-key)))))
 
-
-(defn- ref-update [{:keys [path value] :as args}]
-  (.update (database-ref path)
-        (->js value)
-        (success-failure-dispatch args)))
-
 (rf/reg-event-fx
  ::push
  (fn [_ [_ args]]
    {::push-fx args}))
+
+(defn- ref-update [{:keys [path value] :as args}]
+  (.update (database-ref path)
+           (->js value)
+           (success-failure-dispatch args)))
 
 (rf/reg-fx ::update-fx
            (fn [args]
