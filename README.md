@@ -36,7 +36,7 @@ technologies online but the one that was most helpful was Henry Widd's blog post
 and [source code](https://github.com/henryw374/firebase-clojurescript-todo-list).
 
 Henry's code best matched my own style of coding (simple, clear calls to libraries). After reading his blog
-post and playing with his example code, I formed a clear idea of how to write this site. The initial firebase
+post and playing with his example code, I formed a clear idea of how to build Clocks and Dice. The initial firebase
 binding code was taken directly from him.
 
 [Donate](https://www.paypal.com/paypalme/chrisfarnham)
