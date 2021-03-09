@@ -23,7 +23,7 @@ and add them to the `resources/public/images/` directory for the Clocks and Dice
 
 ### Skyjedi's SWRPG dice roller
 
-Skyjedi's (SWRPG dice roller)[https://dice.skyjedi.com/], which my regular roleplaying group 
+Skyjedi's [SWRPG dice roller](https://dice.skyjedi.com/), which my regular roleplaying group 
 has used for almost a year during covid, was a direct inspiration for this app. My main motivation
 was that wanting a shared virtual dice roller like this one but for Blades in the Dark.
 
