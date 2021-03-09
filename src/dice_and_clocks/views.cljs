@@ -200,6 +200,17 @@
                            (reset! new-message nil))} "Send"]
   ])))
 )
+;; Example from tutorial 13 is the Enter key
+;; (fn [{:keys [id class placeholder]}]
+;;       [:input {:type "text" :value @val
+;;                :id id :class class :placeholder placeholder
+;;                :on-blur save
+;;                :on-change #(reset! val (-> % .-target .-value))
+;;                :on-key-down #(case (.-which %)
+;;                                13 (save)
+;;                                27 (stop)
+;;                                nil)}])))
+
 
 (def content-box-class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100")
 
@@ -237,16 +248,36 @@
     (rf/dispatch [::db/push {:path messages-path :value clock-message}])
 ))
 
+
+;; (defn mark-deleted
+;;   "`message-path` includes the message-id"
+;;   [message-path]
+;;   (rf/dispatch
+;;    [::db/push {:value true :path  (conj message-path :deleted?)}]))
+
+
+(def clock-button-class "px-1 text-3xl font-extra-bold")
+
 (defn display-clock [context clock]
-  (let [{:keys [clock-channel]} context
-        {:keys [key tic id caption creator]} clock]
+  (let [{:keys [clocks-path]} context
+        {:keys [key tic id caption creator]} clock
+        this-clock-path (conj clocks-path id)
+        clock-face (clocks/get-face key tic)]
+  (letfn [(advance [] (when (< tic (clocks/max-index key))
+                        (rf/dispatch [::db/update {:value {:tic (+ tic 1)} :path this-clock-path}])))
+          (roll-back [] (when (< 0 tic)
+                          (rf/dispatch [::db/update {:value {:tic (- tic 1)} :path this-clock-path}])))]
     ^{:key id}
     [:div {:class "bg-gray-200"}
     [:div {:class "h-full m-px p-2 overflow-hidden bg-gray-300"}
-     [:img  {:class "w-14" :src (str "images/clocks/" (clocks/get-face key tic))}]
+     [:img  {:class "w-14" :src (str "images/clocks/" clock-face)}]
+     [:span {:class "inline-block"}
+      [:button {:class clock-button-class :on-click #(roll-back)} "-"]
+      [:button {:class clock-button-class :on-click #(advance)} "+"]]
      [:div {:class "text-lg prose prose-m"} caption]
-     [:div {:class "text-xs"} creator]]]
-))
+     [:div {:class "text-xs"} creator]
+     ]]
+)))
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
 (defn display-clocks [context]
   (let [{:keys [clocks]} context

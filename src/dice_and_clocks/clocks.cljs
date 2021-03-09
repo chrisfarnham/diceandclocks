@@ -19,6 +19,14 @@
   (let [key (keyword key)]
   (get (:faces (first (filter #(= key (:key %)) clocks))) tic)
 ))
+
+(defn max-index [key]
+  (let [key (keyword key)]
+    (- (count (:faces (first (filter #(= key (:key %)) clocks)))) 1)
+))
+
+; (get-size :eight-o)
+
 ; (keyword :test)
 ; (get-face :four-b 1)
 ; (keys clocks)

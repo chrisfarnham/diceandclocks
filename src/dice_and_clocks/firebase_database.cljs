@@ -51,10 +51,25 @@
               (-> args
                   (update :path get-push-key)))))
 
+
+(defn- ref-update [{:keys [path value] :as args}]
+  (.update (database-ref path)
+        (->js value)
+        (success-failure-dispatch args)))
+
 (rf/reg-event-fx
  ::push
  (fn [_ [_ args]]
    {::push-fx args}))
+
+(rf/reg-fx ::update-fx
+           (fn [args]
+             (ref-update args)))
+
+(rf/reg-event-fx
+ ::update
+ (fn [_ [_ args]]
+   {::update-fx args}))
 
 (defn on-value-reaction
   "returns a reagent atom that will always have the latest value at 'path' in the Firebase database"
