@@ -4,10 +4,11 @@
 		"autoprefixer": "^10.2.4",
 		"postcss": "^8.2.6",
 		"postcss-cli": "^8.3.1",
-		"shadow-cljs": "2.11.18",
+		"shadow-cljs": "2.11.20",
 		"tailwindcss": "^2.0.3"
 	},
 	"dependencies": {
+		"@tailwindcss/typography": "^0.4.0",
 		"postcss-import": "^14.0.0",
 		"react": "17.0.1",
 		"react-dom": "17.0.1"

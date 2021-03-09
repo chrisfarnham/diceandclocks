@@ -4,13 +4,12 @@
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
-                 [thheller/shadow-cljs "2.11.18"]
+                 [thheller/shadow-cljs "2.11.20"]
                  [reagent "1.0.0"]
                  [re-frame "1.2.0"]
                  [cljs-bean/cljs-bean "1.5.0"]]
 
   :plugins [[lein-shadow "0.3.1"]
-            
             [lein-shell "0.5.0"]]
 
   :min-lein-version "2.9.0"

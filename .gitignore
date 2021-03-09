@@ -3,7 +3,7 @@
 /resources/public/firebase-init.js
 /resources/public/index.html
 /resources/public/css/output.css
-/target/
+/resources/public/images/clocks/*
 /*-init.clj
 /*.log
 
@@ -18,3 +18,5 @@
 /shadow-cljs.edn
 /.shadow-cljs/
 .*
+!.firebaserc
+/target/**
