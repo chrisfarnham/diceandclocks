@@ -1,5 +1,7 @@
 # Things to do
 
+ - Modal dialog for deletes https://github.com/benhowell/re-frame-modal
+ - Allow delete clocks
  - Add a donate link to https://www.paypal.com/paypalme/chrisfarnham
  - Set up "about" page
     - Attribution to clocks images, BitD, skyjedi, 
