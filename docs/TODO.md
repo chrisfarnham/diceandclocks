@@ -1,0 +1,14 @@
+# Things to do
+
+ - Add a donate link to https://www.paypal.com/paypalme/chrisfarnham
+ - Set up "about" page
+    - Attribution to clocks images, BitD, skyjedi, 
+        - Clocks dude
+        - BitD
+        - skyjedi
+        - https://github.com/henryw374/firebase-clojurescript-todo-list
+ - Print out clocks
+ - Set up timedate stamps for channel access so we have a sane way to remove abandoned channels
+ - Clean up README
+    - Get rid of boilerplate and link to re-frame project https://github.com/day8/re-frame-template
+        - OR copy the current README to peer md file and link to it
