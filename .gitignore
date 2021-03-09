@@ -18,4 +18,5 @@
 /shadow-cljs.edn
 /.shadow-cljs/
 .*
+!.firebaserc
 /target/**
