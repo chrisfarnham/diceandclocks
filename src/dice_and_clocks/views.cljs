@@ -1,13 +1,14 @@
 (ns dice-and-clocks.views
   (:require
-   [re-frame.core :as rf]
-   [reagent.core :as r]
-   [goog.string :as gstring]
    [clojure.string :as string]
+   [dice-and-clocks.action-rolls :as action-rolls]
+   [dice-and-clocks.clocks :as clocks]
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
    [dice-and-clocks.subs :as subs]
-   [dice-and-clocks.clocks :as clocks]
+   [goog.string :as gstring]
+   [re-frame.core :as rf]
+   [reagent.core :as r]
    ))
 
 
@@ -148,51 +149,73 @@
                                           :message-type "dice-roll"})}])
 )
 
-;; <button class="inline-flex items-center justify-center w-10 h-10 mr-2 text-indigo-100 transition-colors duration-150 bg-indigo-700 rounded-full focus:shadow-outline hover:bg-indigo-800">
-;;   <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-;; </button>
-
+(def circle-button-class "text-sm fas fa-circle")
 (def little-div-class "h-3")
-(defn position-and-effect []
-  [:div {:class "container w-12 h-8 grid grid-cols-4"}
-   [:div {:class little-div-class}"O"][:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} ""]
-   [:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} ""]
-   [:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class little-div-class} "O"][:div {:class (str "p-px " little-div-class)} "x"]
-  ]
+
+
+(defn position-and-effect [on-mouse-over on-mouse-out on-click]
+  [:div {:class "relative"}
+  [:div {:class "container absolute inset-y-0 right-0 w-14 h-10 grid grid-cols-4"}
+   (map-indexed 
+    (fn [idx item] 
+      (let [{:keys [position effect]} item]
+      ^{:key (str position "-" effect)}
+        [:<>
+         [:div {:class little-div-class} 
+          [:button {:class "focus:outline-none"
+                    :on-click #(on-click position effect)
+                    :on-mouse-over #(on-mouse-over position effect)
+                    :on-mouse-out  #(on-mouse-out)
+                    }
+           [:i {:class circle-button-class}]]]
+         (cond (= 8 idx) [:button {:class (str "text-white p-px focus:outline-none " little-div-class) 
+                                   :on-click #(on-click nil nil)} "x"]
+               (= 2 (mod idx 3)) [:div {:class little-div-class} ""])]
+        )) action-rolls/combinations)]]
 )
 
-(def proto-dice-roll {:size 0 :position nil :effect "" :text nil})
+(def proto-dice-roll {:size 0 :position nil :effect nil :text nil})
 
 (defn roll-dice [context]
-  (r/with-let [dice-roll (r/atom proto-dice-roll)]
+  (r/with-let [dice-roll (r/atom proto-dice-roll) p-and-e-label (r/atom nil)]
     (letfn [(increment [] (when (< (:size @dice-roll) 9) (swap! dice-roll assoc :size (inc (:size @dice-roll)))))
             (decrement [] (when (< 0 (:size @dice-roll)) (swap! dice-roll assoc :size (dec (:size @dice-roll)))))
-            (roll[] (persist-roll context (merge @dice-roll 
+            (roll[] (persist-roll context (merge @dice-roll
                                                  (generate-dice-results (:size @dice-roll)))) 
-                 (reset! dice-roll proto-dice-roll))]
+                 (reset! dice-roll proto-dice-roll))
+            (position-and-effect-set? [] (let [{:keys [position effect]} @dice-roll](not-any? nil? [position effect])))
+            (on-mouse-over [position effect] (reset! p-and-e-label (str position " ~ " effect)))
+            (on-mouse-out [] (reset! p-and-e-label nil))
+            (on-click [position effect] (swap! dice-roll assoc :position position :effect effect))
+            ]
       [:<>
-       [:div {:class "bg-gray-300 grid grid-cols-2 grid-rows-1 p-3"}
-        [:div {:class "grid grid-cols-3"}
-        [:div {:class ""} ""]
-        [:div {:class "relative"}
-         [:div {:class "absolute inset-y-0 right-0"}
-         [:button {:class button-class
-                   :on-click (fn [] (decrement))} "-"]
-         (str (:size @dice-roll))
-         [:button {:class button-class
-                   :on-click (fn [] (increment))} "+"]]]
-         [position-and-effect]
+       [:div {:class "bg-gray-300 grid grid-cols-3 grid-rows-2 p-1"}
+        [:div {:class "grid grid-cols-2"}
+         (position-and-effect on-mouse-over on-mouse-out on-click)
+         [:div {:class "w-64"}
+          [:button {:class button-class
+                    :on-click (fn [] (decrement))} "-"]
+          (str (:size @dice-roll))
+          [:button {:class button-class
+                    :on-click (fn [] (increment))} "+"]]]
+        [:div {:class "col-span-2 relative"}
+         [:input {:type :text
+                  :class (str text-input-class "")
+                  :value (:text @dice-roll)
+                  :placeholder "Roll caption"
+                  :max-length "100"
+                  :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))}]
+         [:button {:class (str "absolute inset-y-0 right-0" button-class)
+                   :on-click (fn [] (roll))} "Roll"]]
+        [:div {:class "col-span-2"}
+         [:p {:class (str "mt-3 text-2xl text-center align-middle" 
+                          (when-not (position-and-effect-set?) " text-gray-900 text-opacity-20"))}
+          (if (position-and-effect-set?)
+            (let [{:keys [position effect]} @dice-roll] (str position " ~ " effect))
+            @p-and-e-label)]
         ]
-        [:div {:class "relative"}
-        [:input {:type :text
-                 :class (str text-input-class "")
-                 :value (:text @dice-roll)
-                 :placeholder "Roll caption"
-                 :max-length "100"
-                 :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))}]
-        [:button {:class (str "absolute inset-y-0 right-0" button-class)
-                  :on-click (fn [] (roll))} "Roll"]
-        ]]]
+        [:div]
+        ]]
        
        )))
 
