@@ -114,11 +114,13 @@
      :deleteable? false)))
 
 (defmethod display-message "dice-roll" [context message]
-  (let [{:keys [id sender result pool text size]} message]
+  (let [{:keys [id sender result pool text size position effect]} message]
     (message-container context message (fn []
     [:div {:class "overflow-visible"}
-     (when (not (string/blank? text))
-       [:span (str "\"" text "\"") [:br]])
+     (when-not (string/blank? position)[:div {:class ""} (str position " ~ " effect)])
+     [:div 
+     (when-not (string/blank? text)
+       [:span (str "\"" text "\"") [:br]])]
      [:span {:class "inline-block align-middle"}
       (str sender " rolled ")
       [:span {:class "inline-block align-bottom"}

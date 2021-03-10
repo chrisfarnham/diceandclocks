@@ -1,6 +1,6 @@
 (ns dice-and-clocks.action-rolls)
 
-(def positions ["Controlled" "Risky" "Desparate"])
+(def positions ["Controlled" "Risky" "Desperate"])
 
 (def effects ["Great" "Standard" "Limited"])
 
