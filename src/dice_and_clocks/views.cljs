@@ -3,6 +3,7 @@
    [clojure.string :as string]
    [dice-and-clocks.action-rolls :as action-rolls]
    [dice-and-clocks.clocks :as clocks]
+   [dice-and-clocks.intro-view :as intro-view]
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
    [dice-and-clocks.subs :as subs]
@@ -34,7 +35,10 @@
 (defn add-channel [context persist-channel-name]
   (let [{:keys [name channel]} context] 
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
-  [:div {:class "space-y-4 w-1/2 self-center items-center"}
+  [:div {:class "grid grid-cols-3"}
+   
+  [:div {:class ""}]
+  [:div {:class "space-y-4 w-3/4 text-center"}
    [:span {:class "block"} "Start"]
    [:span {:class "block" }
     
@@ -54,7 +58,12 @@
              :class button-class
              :on-click (fn []
                          (persist-channel-name @new-channel-name)
-                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
+                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]]
+  [:div {:class ""}]
+  ]
+                         
+                         
+                         )))
 
 (def int-dice-map 
   {1 "fas fa-dice-one"
@@ -98,9 +107,6 @@
    [:div {:class ""} (str sender " - " text)]]))
   ))
 
-; message-type "clock-deleted"
-; sender 
-; clock-path / deleted?
 
 (defmethod display-message "clock-deleted" [context message]
 (let [{:keys [sender clock-path caption]} message]
@@ -409,10 +415,13 @@
                  :clocks-path (clocks-path channel)}]
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
-      [:div {:class "block"}
+      [:div {:class "block m-2"}
        [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
        [:div {:class "float-right"} [auth-display user]]]
-      (when user
+      (if-not user 
+        [:div {:class "container mx-auto flex flex-wrap content-center"}
+        [:div {:class " "} (intro-view/intro-view [auth-display user]) ]
+        ]
         (if db-connected?
           [:div {:class "p-2"}
            (if (channel-name-ready? {:channel channel :name name})
@@ -431,4 +440,6 @@
                ]])]
           ; if db not connected
           [:div "Loading.."]
-        ))]]))
+        )
+      )
+      ]]))
