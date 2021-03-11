@@ -15,10 +15,16 @@
 
 (def clock-types (map (fn [{:keys [key faces]} _] {:key key :face (second faces)}) clocks))
 
+(defn get-faces [key]
+  (:faces (first (filter #(= key (:key %)) clocks)))
+)
+
 (defn get-face [key tic]
   (let [key (keyword key)]
-  (get (:faces (first (filter #(= key (:key %)) clocks))) tic)
+  (get (get-faces key) tic)
 ))
+
+
 
 (defn max-index [key]
   (let [key (keyword key)]
@@ -26,7 +32,7 @@
 ))
 
 ; (get-size :eight-o)
-
+; (get-faces :eight-o)
 ; (keyword :test)
 ; (get-face :four-b 1)
 ; (keys clocks)

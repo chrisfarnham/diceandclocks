@@ -4,6 +4,8 @@ Source code for [Clocks and Dice](https://clocksanddice.seefar.dev), an assistan
 (dice roller, chat, and clock tracker) for 
 [Evil Hat Productions'](https://www.evilhat.com/home/) [Blades in the Dark](https://bladesinthedark.com/).
 
+![Clocks and Dice screenshot](docs/screen_shot.png)
+
 This repository and the Clocks and Dice website have no ownership or affiliation with Evil Hat Productions
 and Blades in the Dark.
 

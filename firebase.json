@@ -16,7 +16,8 @@
       "**/node_modules/**",
       "resources/public/dev-index.html",
       "resources/public/prod-index.html",
-      "resources/public/firebase-init.js"
+      "resources/public/firebase-init.js",
+      "resources/public/example-firebase-init.js"
     ]
   }
 }
