@@ -12,8 +12,9 @@
 (re-frame/reg-event-db
  :channel-name
  (fn [db [_ channel-name]]
+   (let [channel-name (assoc channel-name :channel (db/slugify (:channel channel-name)))] 
    (merge db channel-name)
-   (set! (.-location js/window) (str "/" (:channel channel-name) "?" (:name channel-name)))))
+   (set! (.-location js/window) (str "/" (:channel channel-name) "?" (:name channel-name))))))
 
 
 (re-frame/reg-event-db

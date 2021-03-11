@@ -31,8 +31,9 @@
 (defn channel-name-ready? [channel-name]
   (some string/blank? (vals channel-name)))
 
-(defn add-channel [persist-channel-name]
-  (r/with-let [new-channel-name (r/atom {:channel "" :name ""})]
+(defn add-channel [context persist-channel-name]
+  (let [{:keys [name channel]} context] 
+  (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
   [:div {:class "space-y-4 w-1/2 self-center items-center"}
    [:span {:class "block"} "Start"]
    [:span {:class "block" }
@@ -53,7 +54,7 @@
              :class button-class
              :on-click (fn []
                          (persist-channel-name @new-channel-name)
-                         (reset! new-channel-name {:channel "" :name ""}))} "Create"]]]))
+                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
 
 (def int-dice-map 
   {1 "fas fa-dice-one"
@@ -78,8 +79,6 @@
   (rf/dispatch
    [::db/push {:value true :path  (conj message-path :deleted?)}]))
 
-;; (defn string->integer [s & {:keys [base] :or {base 10}}]
-;;   (Integer/parseInt s base))
 
 (defn message-container [context message display & {:keys [deleteable?] :or {deleteable? true}}]
    (let  [{:keys [id]} message
@@ -114,20 +113,31 @@
      :deleteable? false)))
 
 (defmethod display-message "dice-roll" [context message]
-  (let [{:keys [id sender result pool text size position effect]} message]
+  (let [{:keys [id sender result pool text size position effect critical]} message]
+    (println (str "size " size " pool " pool " position " position " critical " critical " result " result))
     (message-container context message (fn []
-    [:div {:class "overflow-visible"}
-     (when-not (string/blank? position)[:div {:class ""} (str position " ~ " effect)])
-     [:div 
-     (when-not (string/blank? text)
-       [:span (str "\"" text "\"") [:br]])]
-     [:span {:class "inline-block align-middle"}
-      (str sender " rolled ")
-      [:span {:class "inline-block align-bottom"}
-      (map-indexed (fn [index item] (int-to-dice item (str id "-" index))) pool)]
-      " for a result of " [:span {:class "text-4xl"} (str result)]
-      (str " (" size " dice)"  )
-      ]])
+    [:div {:class "w-full grid grid-cols-2"}
+     [:div {:class "inline-block align-middle"}
+      [:div (str sender)]
+      [:span {:class ""}
+       [:span {:class "inline-block align-bottom"}
+        (map-indexed (fn [index item] (int-to-dice item (str id "-" index))) pool)]
+       [:span {:class "text-4xl align-middle"} (str " : " result)]
+       [:span {:class "text-xs italic"} (str " (" size " dice)") [:br]]]
+      [:div (when-not (string/blank? text) [:span (str "\"" text "\"") [:br]])]]
+     [:div {:class ""}
+      [:div {:class "text-center text-xl"}
+      (when-not (string/blank? position) 
+          (str position " ~ " effect)
+                                    )]
+      [:div {:class "text-sm ml-4"}
+             (when-not (string/blank? position) 
+               [action-rolls/result-description result position critical]
+             )
+       ]
+      
+     ]
+    ])
 )))
 
 (defmethod display-message :default [_ message]
@@ -135,14 +145,6 @@
 
 (defn create-message [name message]
   {:message-type "message" :sender name :text message})
-
-(defn generate-dice-results [size]
-  (let [pool-size (if (< size 1) 2 size)
-        pool (repeatedly pool-size #(+ 1 (rand-int 6)))
-        result (if (< size 1) (apply min pool) (apply max pool))
-        ; zero size dice pools cannot result in crits
-        critical (and (< 0 size) (< 1 (count (filter #(= 6 %) pool))))]
-    {:pool (vec pool) :result result :size size :critical critical}))
 
 (defn persist-roll [context dice-results]
   (rf/dispatch [::db/push {:path (:messages-path context) 
@@ -183,7 +185,7 @@
     (letfn [(increment [] (when (< (:size @dice-roll) 9) (swap! dice-roll assoc :size (inc (:size @dice-roll)))))
             (decrement [] (when (< 0 (:size @dice-roll)) (swap! dice-roll assoc :size (dec (:size @dice-roll)))))
             (roll[] (persist-roll context (merge @dice-roll
-                                                 (generate-dice-results (:size @dice-roll)))) 
+                                                 (action-rolls/generate-dice-results (:size @dice-roll)))) 
                  (reset! dice-roll proto-dice-roll))
             (position-and-effect-set? [] (let [{:keys [position effect]} @dice-roll](not-any? nil? [position effect])))
             (on-mouse-over [position effect] (reset! p-and-e-label (str position " ~ " effect)))
@@ -261,7 +263,7 @@
   [:div {:class "grid grid-flow-row grid-cols-1"}
    [:div {:class "mx-2 p-2 bg-gray-300"} 
     [:span {:class "float-left w-full"} [:div {:class ""}[add-message context]]]]
-   [:div {:class "overscroll-auto overflow-auto max-h-96 grid m-1 gap-1 p-1"}
+   [:div {:class "overscroll-auto overflow-auto max-h-118 grid m-1 gap-1 p-1"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
@@ -304,15 +306,18 @@
                           (rf/dispatch [::db/push {:path messages-path :value clock-message}]))
                           ))]
     ^{:key id}
-    [:div {:class "bg-gray-200"}
-    [:div {:class "h-full m-px p-2 overflow-hidden bg-gray-300"}
-     [:img  {:class "w-14" :src (str "images/clocks/" clock-face)}]
+    [:div {:class "bg-gray-200 relative"}
+        [:div {:class "absolute top-2 right-4"}
+         [:button {:class "" :on-click #(println " clock deleted!")} "x"]]
+    [:div {:class "h-full m-px p-2 bg-gray-300"}
+     [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block"}
       [:button {:class clock-button-class :on-click #(advance)} "+"]
       [:button {:class clock-button-class :on-click #(roll-back)} "-"]]
      [:div {:class "text-lg prose prose-m"} caption]
      [:div {:class "text-xs"} creator]
-     ]]
+     ]
+     ]
 )))
 
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
@@ -323,7 +328,7 @@
   [:div {:class content-box-class}
    [:div {:class "p-2"}
      [:div {:class "bg-gray-300 p-3"}
-   [:div {:class "overscroll-auto overflow-auto max-h-96 grid grid grid-cols-3 flex relative"}
+   [:div {:class "overscroll-auto overflow-auto max-h-118 grid grid grid-cols-3 flex relative"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))
@@ -388,7 +393,7 @@
           [:div {:class "p-2"}
            (if (channel-name-ready? {:channel channel :name name})
              [:div
-              [add-channel (fn [channel-name]
+              [add-channel context (fn [channel-name]
                              (rf/dispatch
                               [::db/push {:value (:channel channel-name)
                                           :path (channels-path (:channel channel-name))}])

@@ -5,7 +5,7 @@
    [dice-and-clocks.events :as events]
    [dice-and-clocks.views :as views]
    [dice-and-clocks.config :as config]
-   ))
+   [dice-and-clocks.db :as db]))
 
 
 
@@ -13,7 +13,7 @@
 (defn dev-setup []
   (when config/debug?
     (println "dev mode")
-    ))
+    (println (str " location " db/pathname " and " db/search " and db is " db/default-db))))
 
 (defn ^:dev/after-load mount-root []
   (re-frame/clear-subscription-cache!)
