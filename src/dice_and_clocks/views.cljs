@@ -71,8 +71,6 @@
    (let [die-class (get int-dice-map die-result)]
      ^{:key id}[:i {:class (str die-class " text-4xl m-1")}])))
 
-
-
 (defn mark-deleted
   "`message-path` includes the message-id"
   [message-path]
@@ -100,6 +98,21 @@
    [:div {:class ""} (str sender " - " text)]]))
   ))
 
+; message-type "clock-deleted"
+; sender 
+; clock-path / deleted?
+
+(defmethod display-message "clock-deleted" [context message]
+(let [{:keys [sender clock-path caption]} message]
+  (message-container context message (fn []
+  [:div {:class ""}
+   [:span (str "\"" caption "\"")]
+   [:div {:class "space-x-4"}(str sender " deleted a clock.") 
+    [:button {:class button-class
+              :on-click (fn [] (rf/dispatch [::db/update {:path clock-path :value {:deleted? nil}}]))} "Restore"]]
+  ])
+:deleteable? false)))
+
 (defmethod display-message "clock-event" [context message]
   (let [{:keys [sender text caption key tic]} message]
     (message-container
@@ -114,7 +127,6 @@
 
 (defmethod display-message "dice-roll" [context message]
   (let [{:keys [id sender result pool text size position effect critical]} message]
-    (println (str "size " size " pool " pool " position " position " critical " critical " result " result))
     (message-container context message (fn []
     [:div {:class "w-full grid grid-cols-2"}
      [:div {:class "inline-block align-middle"}
@@ -282,6 +294,18 @@
     (rf/dispatch [::db/push {:path messages-path :value clock-message}])
 ))
 
+(defn mark-clock-deleted
+  "`message-path` includes the message-id"
+  [context clock-path caption]
+  (let[{:keys [name messages-path]} context]
+  (rf/dispatch
+   [::db/push {:value true :path  (conj clock-path :deleted?)}])
+    (println (str "sender " name " clock-path " clock-path))
+  (rf/dispatch
+   [::db/push {:path messages-path 
+               :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])
+  ))
+
 (def clock-button-class "px-1 text-3xl font-extra-bold")
 
 (defn display-clock [context clock]
@@ -308,7 +332,7 @@
     ^{:key id}
     [:div {:class "bg-gray-200 relative"}
         [:div {:class "absolute top-2 right-4"}
-         [:button {:class "" :on-click #(println " clock deleted!")} "x"]]
+         [:button {:class "" :on-click #(mark-clock-deleted context this-clock-path caption)} "x"]]
     [:div {:class "h-full m-px p-2 bg-gray-300"}
      [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block"}

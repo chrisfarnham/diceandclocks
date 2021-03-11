@@ -42,7 +42,6 @@
 
 (defn result-description [result position critical]
   (let [position (keyword (string/lower-case position))] 
-  (println (str "result " result " position " position " critical " critical))
   [:<>
   (cond
     (= true critical) (get (:critical descriptions) 0)
