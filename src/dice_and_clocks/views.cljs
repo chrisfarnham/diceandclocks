@@ -20,10 +20,10 @@
 
 
 (defn auth-display [user]
-  [:div {:class "inline-block align-middle"}
+  [:div {:class "inline-block"}
+   [:div {:class "float-right"}
    (when user
      [:span {:class "" }(or (:displayName user) (:email user))])
-   [:div {:class "float-right"}
    [:button {:class button-class
              :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
     (if user
@@ -416,9 +416,12 @@
                  :clocks-path (clocks-path channel)}]
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
-      [:div {:class "block m-2"}
-       [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
-       [:div {:class "float-right"} [auth-display user]]]
+      [:div {:class "grid grid-cols-3 mt-1"}
+       [:div [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]]
+       [:div {:class "text-sm text-center"}
+        "Copy and share this address "  [:p {:class "font-mono"} (str utils/shareable-address)]]
+       [:div {:class "float-right text-right"} [auth-display user]]
+      ]
       (if-not user 
         [:div {:class "container mx-auto flex flex-wrap content-center"}
         [:div {:class " "} (intro-view/intro-view [auth-display user]) ]
@@ -430,13 +433,11 @@
               [add-channel context
                (fn [channel-name]
                  (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
-                   (rf/dispatch
-                    [::db/push {:value (:channel channel-name)
-                                :path (channels-path (:channel channel-name))}])
                    (rf/dispatch [:channel-name channel-name])))]]
-            ; this is the main panel
              [:div {:class "grid grid-cols-2 divide-x divide-black"}
-              ; add datetime of access here so we know when a channel was last used
+                   (rf/dispatch
+                    [::db/update {:value {:last-accessed (.now js/Date)}
+                                :path (:channels-path context)}])
               [:div {:class "mr-2"}
                [messages-list context]]
               [:div {:class "ml-2"}

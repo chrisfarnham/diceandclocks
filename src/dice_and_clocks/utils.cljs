@@ -8,3 +8,5 @@
          string/lower-case
          string/trim)
    string))
+
+(def shareable-address (get (string/split (.-location.href js/window) #"\?") 0))
