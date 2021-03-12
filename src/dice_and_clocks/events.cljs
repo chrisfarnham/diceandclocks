@@ -2,6 +2,7 @@
   (:require
    [re-frame.core :as re-frame]
    [dice-and-clocks.db :as db]
+   [dice-and-clocks.utils :as utils]
    ))
 
 (re-frame/reg-event-db
@@ -12,7 +13,7 @@
 (re-frame/reg-event-db
  :channel-name
  (fn [db [_ channel-name]]
-   (let [channel-name (assoc channel-name :channel (db/slugify (:channel channel-name)))] 
+   (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))] 
    (merge db channel-name)
    (set! (.-location js/window) (str "/" (:channel channel-name) "?" (:name channel-name))))))
 

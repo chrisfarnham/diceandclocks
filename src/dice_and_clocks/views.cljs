@@ -7,6 +7,7 @@
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
    [dice-and-clocks.subs :as subs]
+   [dice-and-clocks.utils :as utils]
    [goog.string :as gstring]
    [re-frame.core :as rf]
    [reagent.core :as r]
@@ -426,20 +427,23 @@
           [:div {:class "p-2"}
            (if (channel-name-ready? {:channel channel :name name})
              [:div
-              [add-channel context (fn [channel-name]
-                             (rf/dispatch
-                              [::db/push {:value (:channel channel-name)
-                                          :path (channels-path (:channel channel-name))}])
-                             (rf/dispatch [:channel-name channel-name]))]]
+              [add-channel context
+               (fn [channel-name]
+                 (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
+                   (rf/dispatch
+                    [::db/push {:value (:channel channel-name)
+                                :path (channels-path (:channel channel-name))}])
+                   (rf/dispatch [:channel-name channel-name])))]]
             ; this is the main panel
              [:div {:class "grid grid-cols-2 divide-x divide-black"}
+              ; add datetime of access here so we know when a channel was last used
               [:div {:class "mr-2"}
                [messages-list context]]
-              [:div {:class "ml-2"} 
-               [clocks-list context]
-               ]])]
+              [:div {:class "ml-2"}
+               [clocks-list context]]]
+          )]
           ; if db not connected
-          [:div "Loading.."]
+          [:div "Loading..."]
         )
       )
       ]]))

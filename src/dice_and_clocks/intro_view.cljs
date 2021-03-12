@@ -20,7 +20,7 @@
 
  [:div {:class ""}]
  [:div {:class ""}
-  [:div {:class "flex flex-row"} (for [x (clocks/get-faces :eight-o)] [:div [:img {:class "w-10" :src (str "images/clocks/" x)}]])]]
+  [:div {:class "flex flex-row"} (for [x (clocks/get-faces :eight-o)] ^{:key (str "intro-" x)}[:div [:img {:class "w-10" :src (str "images/clocks/" x)}]])]]
  [:div {:class ""}]
 
  [:div {:class ""}]

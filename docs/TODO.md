@@ -1,6 +1,7 @@
 # Things to do
 
- - Modal dialog for deletes https://github.com/benhowell/re-frame-modal
+ - NOTE: The site tends to work poorly in private browsing modes. You'll also want to whitelist this site for your ad-blocker.
+ - Improve randomness of rolls https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
  - Add a donate link to https://www.paypal.com/paypalme/chrisfarnham
  - Set up "about" page
     - Attribution to clocks images, BitD, skyjedi, 
