@@ -31,18 +31,15 @@
       "Sign in")]]])
 
 (defn channel-name-ready? [channel-name]
-  (some string/blank? (vals channel-name)))
+  (not (some string/blank? (vals channel-name))))
 
 (defn add-channel [context persist-channel-name]
   (let [{:keys [name channel]} context] 
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
-  [:div {:class "grid grid-cols-3"}
    
-  [:div {:class ""}]
-  [:div {:class "space-y-4 w-3/4 text-center"}
-   [:span {:class "block"} "Start"]
+  [:div {:class "space-y-4 space-x-4 text-center"}
+   [:span {:class "block text-2xl"} "Start"]
    [:span {:class "block" }
-    
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
@@ -55,16 +52,11 @@
             :placeholder "User Name"
             :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]]
    [:span {:class "block"}
-   [:button {:disabled (channel-name-ready? @new-channel-name)
+   [:button {:disabled (not (channel-name-ready? @new-channel-name))
              :class button-class
              :on-click (fn []
                          (persist-channel-name @new-channel-name)
-                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]]
-  [:div {:class ""}]
-  ]
-                         
-                         
-                         )))
+                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
 
 (def int-dice-map 
   {1 "fas fa-dice-one"
@@ -232,7 +224,7 @@
                    :on-click (fn [] (roll))} "Roll"]]
         [:div {:class "col-span-2"}
          [:p {:class (str "mt-3 text-2xl text-center align-middle" 
-                          (when-not (position-and-effect-set?) " text-gray-900 text-opacity-20"))}
+                          (when-not (position-and-effect-set?) " text-gray-900 text-opacity-70 animate-pulse"))}
           (if (position-and-effect-set?)
             (let [{:keys [position effect]} @dice-roll] (str position " ~ " effect))
             @p-and-e-label)]
@@ -405,6 +397,7 @@
         channel @(rf/subscribe [::subs/channel])
         messages @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}])
         clocks @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}])
+        channel-name {:channel channel :name name}
         context {:name name 
                  :user user 
                  :channel channel 
@@ -417,24 +410,26 @@
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
       [:div {:class "grid grid-cols-3 mt-1"}
-       [:div [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]]
+       [:div {:class "ml-1"}[:p {:class "float-left prose prose-xl"} "Clocks and Dice"]]
        [:div {:class "text-sm text-center"}
-        "Copy and share this address "  [:p {:class "font-mono"} (str utils/shareable-address)]]
-       [:div {:class "float-right text-right"} [auth-display user]]
-      ]
+        (when (channel-name-ready? channel-name)
+          [:p "Copy and share this address "  [:p {:class "font-mono"} (str utils/shareable-address)]])]
+       [:div {:class "float-right text-right"} [auth-display user]]]
       (if-not user 
         [:div {:class "container mx-auto flex flex-wrap content-center"}
         [:div {:class " "} (intro-view/intro-view [auth-display user]) ]
         ]
         (if db-connected?
           [:div {:class "p-2"}
-           (if (channel-name-ready? {:channel channel :name name})
+           (if (not (channel-name-ready? channel-name))
              [:div
+              (intro-view/intro-view
               [add-channel context
                (fn [channel-name]
                  (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
-                   (rf/dispatch [:channel-name channel-name])))]]
-             [:div {:class "grid grid-cols-2 divide-x divide-black"}
+                   (rf/dispatch [:channel-name channel-name])))])
+              ]
+             [:div {:class "grid grid-cols-2 "}
                    (rf/dispatch
                     [::db/update {:value {:last-accessed (.now js/Date)}
                                 :path (:channels-path context)}])
