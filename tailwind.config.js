@@ -34,6 +34,9 @@ module.exports = {
         314: "76rem",
         330: "80rem",
       },
+      screens: {
+        'print': {'raw': 'print'},
+      }
     },
   },
   corePlugins: {

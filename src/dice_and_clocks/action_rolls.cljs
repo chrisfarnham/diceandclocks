@@ -20,8 +20,10 @@
   {
    :critical [[:p [:b "Critical:"] " You do it with " [:b "increased effect."]]]
    :controlled [[:p "You do it."] 
-                [:p "You hesitate. Withdraw and try a different approach, or else do it with a minor consequence: a minor " [:b "complication "] " occurs, you have " [:b " reduced effect"]
-                 ", you suffer " [:b "lesser harm "] ", you end up in a " [:b " risky "] " position."]
+                [:p "You hesitate. Withdraw and try a different approach, or else do it with a"
+                 " minor consequence: a minor " [:b "complication "] " occurs, you have " 
+                 [:b " reduced effect"]
+                 ", you suffer " [:b "lesser harm, "] " you end up in a " [:b " risky "] " position."]
                 [:p "You falter. Press on by seizing a " [:b "risky"] 
                  " opportunity, or withdraw and try a different approach."]]
    :risky [[:p "You do it."]
@@ -34,7 +36,7 @@
    :desperate [[:p "You do it."]
                [:p "You do it, but there's a consequence: you suffer " [:b " severe harm, "]
                 " a " [:b " serious complication "] " occurs, you have " [:b " reduced effect."]]
-               [:p "It's the worst outcome. You suffer " [:b " severe harm "] ", a "
+               [:p "It's the worst outcome. You suffer " [:b " severe harm, "] " a "
                 [:b " serious complication "] " occurs, you " [:b " lose this opportunity "]
                 " for action."]]
   }
@@ -45,13 +47,13 @@
   [:<>
   (cond
     (= true critical) (get (:critical descriptions) 0)
-    (= :controlled position) (cond (= result 6)    (get (:controlled descriptions) 0)
-                                   (<= 4 result 5) (get (:controlled descriptions) 1)
-                                   (<= 1 result 3) (get (:controlled descriptions) 2))
+    (= :controlled position)(cond (= result 6)    (get (:controlled descriptions) 0)
+                                  (<= 4 result 5) (get (:controlled descriptions) 1)
+                                  (<= 1 result 3) (get (:controlled descriptions) 2))
     (= :risky position)(cond (= result 6)    (get (:risky descriptions) 0)
                              (<= 4 result 5) (get (:risky descriptions) 1)
                              (<= 1 result 3) (get (:risky descriptions) 2))
-    (= :desperate position)(cond (= result 6) (get (:desperate descriptions) 0)
+    (= :desperate position)(cond (= result 6)    (get (:desperate descriptions) 0)
                                  (<= 4 result 5) (get (:desperate descriptions) 1)
                                  (<= 1 result 3) (get (:desperate descriptions) 2))
     )]

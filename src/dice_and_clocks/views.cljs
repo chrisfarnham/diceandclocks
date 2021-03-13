@@ -7,6 +7,7 @@
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
    [dice-and-clocks.subs :as subs]
+   [dice-and-clocks.utils :as utils]
    [goog.string :as gstring]
    [re-frame.core :as rf]
    [reagent.core :as r]
@@ -15,14 +16,14 @@
 
 (def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
 
-(def button-class "bg-grey-500 p-1 m-1 border-2 border-black")
+(def button-class "bg-grey-500 p-1 m-1 border-2 border-black print:hidden")
 
 
 (defn auth-display [user]
-  [:div {:class "inline-block align-middle"}
+  [:div {:class "inline-block"}
+   [:div {:class "float-right"}
    (when user
      [:span {:class "" }(or (:displayName user) (:email user))])
-   [:div {:class "float-right"}
    [:button {:class button-class
              :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
     (if user
@@ -30,18 +31,15 @@
       "Sign in")]]])
 
 (defn channel-name-ready? [channel-name]
-  (some string/blank? (vals channel-name)))
+  (not (some string/blank? (vals channel-name))))
 
 (defn add-channel [context persist-channel-name]
   (let [{:keys [name channel]} context] 
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
-  [:div {:class "grid grid-cols-3"}
    
-  [:div {:class ""}]
-  [:div {:class "space-y-4 w-3/4 text-center"}
-   [:span {:class "block"} "Start"]
+  [:div {:class "space-y-4 space-x-4 text-center"}
+   [:span {:class "block text-2xl"} "Start"]
    [:span {:class "block" }
-    
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
@@ -54,16 +52,11 @@
             :placeholder "User Name"
             :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]]
    [:span {:class "block"}
-   [:button {:disabled (channel-name-ready? @new-channel-name)
+   [:button {:disabled (not (channel-name-ready? @new-channel-name))
              :class button-class
              :on-click (fn []
                          (persist-channel-name @new-channel-name)
-                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]]
-  [:div {:class ""}]
-  ]
-                         
-                         
-                         )))
+                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
 
 (def int-dice-map 
   {1 "fas fa-dice-one"
@@ -231,7 +224,7 @@
                    :on-click (fn [] (roll))} "Roll"]]
         [:div {:class "col-span-2"}
          [:p {:class (str "mt-3 text-2xl text-center align-middle" 
-                          (when-not (position-and-effect-set?) " text-gray-900 text-opacity-20"))}
+                          (when-not (position-and-effect-set?) " text-gray-900 text-opacity-70 animate-pulse"))}
           (if (position-and-effect-set?)
             (let [{:keys [position effect]} @dice-roll] (str position " ~ " effect))
             @p-and-e-label)]
@@ -338,10 +331,10 @@
     ^{:key id}
     [:div {:class "bg-gray-200 relative"}
         [:div {:class "absolute top-2 right-4"}
-         [:button {:class "" :on-click #(mark-clock-deleted context this-clock-path caption)} "x"]]
+         [:button {:class "print:hidden" :on-click #(mark-clock-deleted context this-clock-path caption)} "x"]]
     [:div {:class "h-full m-px p-2 bg-gray-300"}
      [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
-     [:span {:class "inline-block"}
+     [:span {:class "inline-block print:hidden"}
       [:button {:class clock-button-class :on-click #(advance)} "+"]
       [:button {:class clock-button-class :on-click #(roll-back)} "-"]]
      [:div {:class "text-lg prose prose-m"} caption]
@@ -358,7 +351,7 @@
   [:div {:class content-box-class}
    [:div {:class "p-2"}
      [:div {:class "bg-gray-300 p-3"}
-   [:div {:class "overscroll-auto overflow-auto max-h-118 grid grid grid-cols-3 flex relative"}
+   [:div {:class "overscroll-auto overflow-auto max-h-118 grid grid grid-cols-3 flex relative print:container print:overflow-visible"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))
@@ -370,7 +363,7 @@
   (r/with-let [caption (r/atom "")]
   (letfn [(click-clock [clock-key] (create-clock context clock-key @caption)(reset! caption ""))]
   [:div {:class content-box-class}
-   [:div {:class "p-2"}
+   [:div {:class "p-2 print:hidden"}
     [:div {:class "bg-gray-300 p-3"}
      [:input {:type  :text
               :class text-input-class
@@ -404,6 +397,7 @@
         channel @(rf/subscribe [::subs/channel])
         messages @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}])
         clocks @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}])
+        channel-name {:channel channel :name name}
         context {:name name 
                  :user user 
                  :channel channel 
@@ -415,31 +409,39 @@
                  :clocks-path (clocks-path channel)}]
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
-      [:div {:class "block m-2"}
-       [:p {:class "float-left prose prose-xl"} "Clocks and Dice"]
-       [:div {:class "float-right"} [auth-display user]]]
+      [:div {:class "grid grid-cols-3 mt-1"}
+       [:div {:class "ml-1"}[:p {:class "float-left prose prose-xl"} "Clocks and Dice"]]
+       [:div {:class "text-sm text-center"}
+        (when (channel-name-ready? channel-name)
+          [:span
+          [:p {:class "print:hidden"} "Copy and share this address "]
+          [:p {:class "font-mono"} (str utils/shareable-address)]])]
+       [:div {:class "float-right text-right"} [auth-display user]]]
       (if-not user 
         [:div {:class "container mx-auto flex flex-wrap content-center"}
         [:div {:class " "} (intro-view/intro-view [auth-display user]) ]
         ]
         (if db-connected?
           [:div {:class "p-2"}
-           (if (channel-name-ready? {:channel channel :name name})
-             [:div
-              [add-channel context (fn [channel-name]
-                             (rf/dispatch
-                              [::db/push {:value (:channel channel-name)
-                                          :path (channels-path (:channel channel-name))}])
-                             (rf/dispatch [:channel-name channel-name]))]]
-            ; this is the main panel
-             [:div {:class "grid grid-cols-2 divide-x divide-black"}
-              [:div {:class "mr-2"}
+           (if (not (channel-name-ready? channel-name))
+             [:div {:class "absolute"}
+              (intro-view/intro-view
+              [add-channel context
+               (fn [channel-name]
+                 (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
+                   (rf/dispatch [:channel-name channel-name])))])
+              ]
+             [:div {:class "grid grid-cols-2 print:grid-cols-none"}
+                   (rf/dispatch
+                    [::db/update {:value {:last-accessed (.now js/Date)}
+                                :path (:channels-path context)}])
+              [:div {:class "mr-2 print:hidden"}
                [messages-list context]]
-              [:div {:class "ml-2"} 
-               [clocks-list context]
-               ]])]
+              [:div {:class "ml-2"}
+               [clocks-list context]]]
+          )]
           ; if db not connected
-          [:div "Loading.."]
+          [:div "Loading..."]
         )
       )
       ]]))
