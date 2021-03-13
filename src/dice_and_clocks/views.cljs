@@ -355,6 +355,9 @@
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))
+    (when (< 1 (count clocks))
+    [:div {:class "col-span-3 text-xs text-center print:hidden"} 
+     "Hint: Share clock state with your players when your session is done by printing this page to PDF and emailing it to them."])
     ]
   ]]]
 ))

@@ -28,8 +28,7 @@
                  " opportunity, or withdraw and try a different approach."]]
    :risky [[:p "You do it."]
            [:p "You do it, but there's a consequence: you suffer " [:b " harm, "] " a " [:b " complication "]
-            " occurs, you have " [:b " reduced effect,"] " you end up in a " [:b " desperate "] " position, you "
-            [:b " lose this opportunity."]]
+            " occurs, you have " [:b " reduced effect,"] " you end up in a " [:b " desperate "] " position."]
            [:p "Things go badly. You suffer " [:b " harm, "] " a " [:b " complication "] 
             " occurs, you end up in a " [:b " desperate "] " position, you " [:b " lose this opportunity."] ]
            ]
