@@ -16,7 +16,7 @@
 
 (def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
 
-(def button-class "bg-grey-500 p-1 m-1 border-2 border-black")
+(def button-class "bg-grey-500 p-1 m-1 border-2 border-black print:hidden")
 
 
 (defn auth-display [user]
@@ -331,10 +331,10 @@
     ^{:key id}
     [:div {:class "bg-gray-200 relative"}
         [:div {:class "absolute top-2 right-4"}
-         [:button {:class "" :on-click #(mark-clock-deleted context this-clock-path caption)} "x"]]
+         [:button {:class "print:hidden" :on-click #(mark-clock-deleted context this-clock-path caption)} "x"]]
     [:div {:class "h-full m-px p-2 bg-gray-300"}
      [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
-     [:span {:class "inline-block"}
+     [:span {:class "inline-block print:hidden"}
       [:button {:class clock-button-class :on-click #(advance)} "+"]
       [:button {:class clock-button-class :on-click #(roll-back)} "-"]]
      [:div {:class "text-lg prose prose-m"} caption]
@@ -351,7 +351,7 @@
   [:div {:class content-box-class}
    [:div {:class "p-2"}
      [:div {:class "bg-gray-300 p-3"}
-   [:div {:class "overscroll-auto overflow-auto max-h-118 grid grid grid-cols-3 flex relative"}
+   [:div {:class "overscroll-auto overflow-auto max-h-118 grid grid grid-cols-3 flex relative print:container print:overflow-visible"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))
@@ -363,7 +363,7 @@
   (r/with-let [caption (r/atom "")]
   (letfn [(click-clock [clock-key] (create-clock context clock-key @caption)(reset! caption ""))]
   [:div {:class content-box-class}
-   [:div {:class "p-2"}
+   [:div {:class "p-2 print:hidden"}
     [:div {:class "bg-gray-300 p-3"}
      [:input {:type  :text
               :class text-input-class
@@ -413,7 +413,9 @@
        [:div {:class "ml-1"}[:p {:class "float-left prose prose-xl"} "Clocks and Dice"]]
        [:div {:class "text-sm text-center"}
         (when (channel-name-ready? channel-name)
-          [:p "Copy and share this address "  [:p {:class "font-mono"} (str utils/shareable-address)]])]
+          [:span
+          [:p {:class "print:hidden"} "Copy and share this address "]
+          [:p {:class "font-mono"} (str utils/shareable-address)]])]
        [:div {:class "float-right text-right"} [auth-display user]]]
       (if-not user 
         [:div {:class "container mx-auto flex flex-wrap content-center"}
@@ -422,18 +424,18 @@
         (if db-connected?
           [:div {:class "p-2"}
            (if (not (channel-name-ready? channel-name))
-             [:div
+             [:div {:class "absolute"}
               (intro-view/intro-view
               [add-channel context
                (fn [channel-name]
                  (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
                    (rf/dispatch [:channel-name channel-name])))])
               ]
-             [:div {:class "grid grid-cols-2 "}
+             [:div {:class "grid grid-cols-2 print:grid-cols-none"}
                    (rf/dispatch
                     [::db/update {:value {:last-accessed (.now js/Date)}
                                 :path (:channels-path context)}])
-              [:div {:class "mr-2"}
+              [:div {:class "mr-2 print:hidden"}
                [messages-list context]]
               [:div {:class "ml-2"}
                [clocks-list context]]]
