@@ -1,14 +1,7 @@
 # Things to do
 
- - NOTE: The site tends to work poorly in private browsing modes. You'll also want to whitelist this site for your ad-blocker.
+ - Notification for a plain crit
+ - Make messages box lighter grey, contrast is bad on big screen
  - Improve randomness of rolls https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
- - Add a donate link to https://www.paypal.com/paypalme/chrisfarnham
- - Set up "about" page
-    - Attribution to clocks images, BitD, skyjedi, 
-        - Clocks dude
-        - BitD
-        - skyjedi
-        - https://github.com/henryw374/firebase-clojurescript-todo-list
- - Print out clocks
- - Set up timedate stamps for channel access so we have a sane way to remove abandoned channels
- 
+ - Create admin report that runs locally or only when I'm logged in so I can delete old channels and manage data
+ - Add "Information Gathering" and "Engagement" as special rolls with labelled results
