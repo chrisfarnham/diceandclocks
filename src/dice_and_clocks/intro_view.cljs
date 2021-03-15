@@ -19,11 +19,19 @@
  [:div {:class ""} sign-in]
  [:div {:class ""}]
 
- 
 [:div {:class ""}]
-[:div {:class ""} [:p "NOTE: This site tends to work poorly in private browsing modes. 
-                       You'll also want to whitelist this site for your ad-blocker."]]
-[:div {:class ""}]
+[:div {:class "col-span-2"} [:p {:class "text-sm"} "NOTE: This site tends to work poorly in private browsing modes. 
+                       You'll also want to whitelist this site for your ad-blocker."]
+                  [:p {:class "text-sm mt-2"}"A core feature of this site is shared channels identified by unknown (unless shared) but
+                       insecure URLs. Users should have no expectation of privacy or data safety. It is intended
+                       for casual use and exchanging non-sensitive, unimportant information."] 
+                  [:p {:class "text-sm mt-2"} "Consider any information
+                       you post as if it were posted anonymously and publicly to the internet. Your email address is only used to
+                       check that you are a real person and is not traceable to any dice rolls, clocks or messages
+                       in the system. Dice roll, clocks and messages are only traceable through the channel
+                       name (i.e., URL) itself and the chosen username for that session.
+                       This site doesn't track identities (beyond making sure you have an account before joining the site)
+                       or trace posted information to email addresses and accounts."]]
  
 
  [:div {:class ""}]
