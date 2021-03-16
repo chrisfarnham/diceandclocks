@@ -37,14 +37,16 @@
   (let [{:keys [name channel]} context] 
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
    
-  [:div {:class "space-y-4 space-x-4 text-center"}
+  [:div {:class "space-y-2 space-x-2 text-center"}
    [:span {:class "block text-2xl"} "Start"]
    [:span {:class "block" }
+       [:p {:class "text-xs"} "Your channel name is a shared secret for your group."]
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
             :placeholder "Channel Name"
-            :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]]
+            :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]
+    ]
    [:span {:class "block"}
     [:input {:type :text
             :class text-input-class
@@ -84,7 +86,7 @@
    (let  [{:keys [id]} message
           {:keys [messages-path]} context]
      ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
-     [:div {:class "bg-gray-500 min-h-12 rounded-md flex p-2 relative"}
+     [:div {:class "bg-gray-300 min-h-12 rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
@@ -138,9 +140,9 @@
       [:div (when-not (string/blank? text) [:span (str "\"" text "\"") [:br]])]]
      [:div {:class ""}
       [:div {:class "text-center text-xl"}
-      (when-not (string/blank? position) 
-          (str position " ~ " effect)
-                                    )]
+      (if (string/blank? position)
+        (when (= critical true) "Critical!")
+        (str position " ~ " effect))]
       [:div {:class "text-sm ml-4"}
              (when-not (string/blank? position) 
                [action-rolls/result-description result position critical]
@@ -231,7 +233,6 @@
         ]
         [:div]
         ]]
-       
        )))
 
 
