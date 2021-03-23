@@ -21,7 +21,7 @@
 
 (defn auth-display [user]
   [:div {:class "inline-block"}
-   [:div {:class "float-right"}
+   [:div {:class ""}
    (when user
      [:span {:class "" }(or (:displayName user) (:email user))])
    [:button {:class button-class

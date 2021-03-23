@@ -24,7 +24,7 @@
 
 
  [:div {:class ""}]
- [:div {:class "col-span-2 "} sign-in]
+ [:div {:class "col-span-2 text-center"} sign-in]
  [:div {:class ""}]
 
 [:div {:class "col-span-4 mh-40 m-8 overflow-scroll"} [:p {:class "text-sm"} "This site tends to work poorly in private browsing modes. 
