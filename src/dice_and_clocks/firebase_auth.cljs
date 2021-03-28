@@ -50,7 +50,7 @@
             user-info
             (fn [user]
               (if (or (not user) (instance? js/Error user))
-                nil
+                (-> (auth) (.signInAnonymously))
                 user)))
 
 (rf/reg-sub ::uid

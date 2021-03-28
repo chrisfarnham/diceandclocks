@@ -23,13 +23,14 @@
 (defn auth-display [user]
   [:div {:class "inline-block"}
    [:div {:class ""}
-   (when user
-     [:span {:class "" }(or (:displayName user) (:email user))])
-   [:button {:class button-class
-             :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
-    (if user
-      "Sign out"
-      "Sign in")]]])
+    (if (:email user)
+      [:span {:class ""} (or (:displayName user) (:email user))]
+      [:span "Anonymous"])
+    [:button {:class button-class
+              :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
+     (if (:email user)
+       "Sign out"
+       "Sign in")]]])
 
 
 (def haikunator (new Haikunator (clj->js {:defaults {:tokenLength 8 :delimiter "-"}})))
@@ -43,7 +44,6 @@
 (defn add-channel [context persist-channel-name]
   (let [{:keys [name channel]} context
         channel (if (= "" channel) (create-channel-id) channel)]
-  (println (str "channel is '" channel "'"))
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
    
   [:div {:class "space-y-2 space-x-2 text-center"}
