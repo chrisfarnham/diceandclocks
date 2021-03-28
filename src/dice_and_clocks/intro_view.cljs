@@ -27,21 +27,13 @@
  [:div {:class "col-span-2 text-center"} sign-in]
  [:div {:class ""}]
 
-[:div {:class "col-span-4 mh-40 m-8 overflow-scroll"} [:p {:class "text-sm"} "This site tends to work poorly in private browsing modes. 
-                       You'll also want to openlist this site for your ad-blocker."]
- [:p {:class "text-xs"} "Treat your channel name as if it were a password. It should be complex enough that no one
-                         would guess it and only share it with friends joining your game."]
- [:p {:class "text-xs mt-2"} "Users should have no expectation of privacy or data safety. It is intended
-                       for casual use and exchanging non-sensitive, unimportant information."]
- 
-;;  [:p {:class "text-xs mt-2"} "Consider any information
-;;                        you post as if it were posted anonymously and publicly to the internet. Your email address is only used to
-;;                        check that you are a real person and is not traceable to any dice rolls, clocks or messages
-;;                        in the system. Dice roll, clocks and messages are identified by the channel
-;;                        name chosen username for that session.
-;;                        This site doesn't track identities (beyond making sure you have an account before joining the site)
-;;                        or trace posted information to email addresses and accounts."]
-
+[:div {:class "col-span-4 mh-40 m-8 overflow-scroll"} 
+ [:p {:class "text-sm"} 
+  "This site tends to work poorly in private browsing modes. You'll also want to openlist 
+   this site for your ad-blocker. Treat your channel name as if it were a password. It should 
+    be complex enough that no one would guess it and only share 
+    it with friends joining your game. This site is intended for casual use and exchanging 
+    non-sensitive information."]
 ]
 
 [:div {:class "col-span-4 grid grid-cols-1 gap-3 h-40 ml-8 overflow-scroll"}
