@@ -11,6 +11,7 @@
    [goog.string :as gstring]
    [re-frame.core :as rf]
    [reagent.core :as r]
+   [haikunator :as Haikunator]
    ))
 
 
@@ -30,11 +31,19 @@
       "Sign out"
       "Sign in")]]])
 
+
+(def haikunator (new Haikunator (clj->js {:defaults {:tokenLength 8 :delimiter "-"}})))
+
+(defn create-channel-id []
+  (.haikunate haikunator))
+
 (defn channel-name-ready? [channel-name]
   (not (some string/blank? (vals channel-name))))
 
 (defn add-channel [context persist-channel-name]
-  (let [{:keys [name channel]} context] 
+  (let [{:keys [name channel]} context
+        channel (if (= "" channel) (create-channel-id) channel)]
+  (println (str "channel is '" channel "'"))
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
    
   [:div {:class "space-y-2 space-x-2 text-center"}
@@ -44,7 +53,7 @@
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
-            :placeholder "Channel Name"
+            :placeholder (if (= "" (:channel @new-channel-name)) "Channel Name" (:channel @new-channel-name))
             :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]
     ]
    [:span {:class "block"}

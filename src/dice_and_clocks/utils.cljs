@@ -3,7 +3,7 @@
 
 (defn slugify
   [string]
-  ((comp #(string/replace % #"\W" "")
+  ((comp #(string/replace % #"[^\w-]" "")
          #(string/replace % #"\s+" "-")
          string/lower-case
          string/trim)
