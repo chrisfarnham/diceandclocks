@@ -2,7 +2,7 @@
   (:require [dice-and-clocks.utils :as utils]))
 
 (def search
-  (subs (.. js/window -location -search) 1))
+  (subs (js/decodeURIComponent (.. js/window -location -search)) 1))
 
 ; js/decodeURIComponent
 
