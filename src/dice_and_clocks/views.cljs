@@ -12,6 +12,8 @@
    [re-frame.core :as rf]
    [reagent.core :as r]
    [haikunator :as Haikunator]
+   [html-to-image]
+   [downloadjs]
    ))
 
 
@@ -306,14 +308,12 @@
 (defn mark-clock-deleted
   "`message-path` includes the message-id"
   [context clock-path caption]
-  (let[{:keys [name messages-path]} context]
-  (rf/dispatch
-   [::db/push {:value true :path  (conj clock-path :deleted?)}])
-    (println (str "sender " name " clock-path " clock-path))
-  (rf/dispatch
-   [::db/push {:path messages-path 
-               :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])
-  ))
+  (let [{:keys [name messages-path]} context]
+    (rf/dispatch
+     [::db/push {:value true :path  (conj clock-path :deleted?)}])
+    (rf/dispatch
+     [::db/push {:path messages-path
+                 :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])))
 
 (def clock-button-class "px-1 text-3xl font-extra-bold")
 
@@ -353,6 +353,22 @@
      ]
 )))
 
+(defn clocks-to-png-filter [node]
+  (let [tag-name (.. node -nodeName )]
+    (not(= tag-name "BUTTON")))
+)
+(def to-png-options (clj->js {:filter clocks-to-png-filter 
+                              :style {:class "container overflow-visible max-h-full"}}))
+
+(defn clocks-to-png []
+(let [clock-panel-div (. js/document (getElementById "clock-panel"))]
+  (-> clock-panel-div
+      (html-to-image/toPng to-png-options)
+      (.then 
+       (fn [data-url] (downloadjs data-url "clocks.png")))
+  )
+))
+
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
 (defn display-clocks [context]
   (let [{:keys [clocks]} context
@@ -360,17 +376,23 @@
          clocks (->> clocks (map process-message))]
   [:div {:class content-box-class}
    [:div {:class "p-2"}
-     [:div {:class "bg-gray-300 p-3"}
-   [:div {:class "overscroll-auto overflow-auto max-h-118 grid grid grid-cols-3 flex relative print:container print:overflow-visible"}
+     [:div {:class "bg-gray-300 p-3"} 
+   [:div {:class "overscroll-auto overflow-auto max-h-118 print:container print:overflow-visible"
+          }
+    ; This div is specifically to support PNG downloads of clocks
+    [:div {:class "grid grid grid-cols-3 flex relative bg-gray-300" :id "clock-panel"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
-         (map (fn [clock] (display-clock context clock))))
+         (map (fn [clock] (display-clock context clock))))]
     (when (< 1 (count clocks))
-    [:div {:class "col-span-3 text-xs text-center print:hidden"} 
-     "Hint: Share clock state with your players when your session is done by printing this page to PDF and emailing it to them."])
+      [:div {:class "p-2"}
+      [:a {:class "text-sm text-center print:hidden" :href "#"
+           :on-click #(clocks-to-png)}
+       [:i {:class "fas fa-camera"}]]])
     ]
   ]]]
 ))
+
 
 (defn clocks-list [context]
   (r/with-let [caption (r/atom "")]
