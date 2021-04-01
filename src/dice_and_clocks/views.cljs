@@ -169,24 +169,23 @@
                                           :message-type "dice-roll"})}])
 )
 
-(def circle-button-class "text-sm fas fa-circle")
+(def circle-button-class "text-lg fas fa-circle")
 (def little-div-class "h-3")
 
 
 (defn position-and-effect [on-mouse-over on-mouse-out on-click]
   [:div {:class "relative"}
-  [:div {:class "container absolute inset-y-0 right-0 w-14 h-10 grid grid-cols-4"}
+  [:div {:class "container absolute inset-y-0 right-0 w-16 h-12 grid grid-cols-4 gap-2"}
    (map-indexed 
     (fn [idx item] 
       (let [{:keys [position effect]} item]
       ^{:key (str position "-" effect)}
         [:<>
-         [:div {:class little-div-class} 
+         [:div {:class little-div-class}
           [:button {:class "focus:outline-none"
                     :on-click #(on-click position effect)
                     :on-mouse-over #(on-mouse-over position effect)
-                    :on-mouse-out  #(on-mouse-out)
-                    }
+                    :on-mouse-out  #(on-mouse-out)}
            [:i {:class circle-button-class}]]]
          (cond (= 8 idx) [:button {:class (str "text-white p-px focus:outline-none " little-div-class) 
                                    :on-click #(on-click nil nil)} "x"]
@@ -227,14 +226,14 @@
                   :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))}]
          [:button {:class (str "absolute inset-y-0 right-0" button-class)
                    :on-click (fn [] (roll))} "Roll"]]
+        [:div]
         [:div {:class "col-span-2"}
-         [:p {:class (str "mt-3 text-2xl text-center align-middle" 
+         [:p {:class (str "mt-3 text-2xl" 
                           (when-not (position-and-effect-set?) " text-gray-900 text-opacity-70 animate-pulse"))}
           (if (position-and-effect-set?)
             (let [{:keys [position effect]} @dice-roll] (str position " ~ " effect))
             @p-and-e-label)]
         ]
-        [:div]
         ]]
        )))
 
