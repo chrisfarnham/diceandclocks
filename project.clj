@@ -1,10 +1,10 @@
 (defproject dice-and-clocks "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.10.2"]
-                 [org.clojure/clojurescript "1.10.773"
+  :dependencies [[org.clojure/clojure "1.10.3"]
+                 [org.clojure/clojurescript "1.10.844"
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
-                 [thheller/shadow-cljs "2.11.20"]
+                 [thheller/shadow-cljs "2.11.23"]
                  [reagent "1.0.0"]
                  [re-frame "1.2.0"]
                  [cljs-bean/cljs-bean "1.5.0"]]

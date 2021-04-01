@@ -10,8 +10,7 @@
 
 (defn dev-setup []
   (when config/debug?
-    (println "dev mode")
-    (println (str " location " db/pathname " and " db/search " and db is " db/default-db))))
+    (println "dev mode")))
 
 (defn ^:dev/after-load mount-root []
   (re-frame/clear-subscription-cache!)
