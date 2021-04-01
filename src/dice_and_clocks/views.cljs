@@ -22,17 +22,9 @@
 (def button-class "bg-grey-500 p-1 m-1 border-2 border-black print:hidden")
 
 
-(defn auth-display [user]
-  [:div {:class "inline-block"}
-   [:div {:class ""}
-    (if (:email user)
-      [:span {:class ""} (or (:displayName user) (:email user))]
-      [:span "Anonymous"])
-    [:button {:class button-class
-              :on-click #(rf/dispatch [(if user ::auth/sign-out ::auth/sign-in)])}
-     (if (:email user)
-       "Sign out"
-       "Sign in")]]])
+(defn auth-display []
+  [:div {:class "inline-block p-px"}
+      [:i {:class "fas fa-cookie-bite"}]]) ; left blank on purpose
 
 
 (def haikunator (new Haikunator (clj->js {:defaults {:tokenLength 8 :delimiter "-"}})))
@@ -357,8 +349,7 @@
   (let [tag-name (.. node -nodeName )]
     (not(= tag-name "BUTTON")))
 )
-(def to-png-options (clj->js {:filter clocks-to-png-filter 
-                              :style {:class "container overflow-visible max-h-full"}}))
+(def to-png-options (clj->js {:filter clocks-to-png-filter}))
 
 (defn clocks-to-png []
 (let [clock-panel-div (. js/document (getElementById "clock-panel"))]
@@ -445,16 +436,16 @@
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
       [:div {:class "grid grid-cols-3 mt-1"}
-       [:div {:class "ml-1"}[:p {:class "float-left prose prose-xl"} "Clocks and Dice"]]
+       [:div {:class "ml-1"}[:p>a {:class "float-left prose prose-xl" :href "/"} "Clocks and Dice"]]
        [:div {:class "text-sm text-center"}
         (when (channel-name-ready? channel-name)
           [:span
           [:p {:class "print:hidden"} "Copy and share this address "]
           [:p {:class "font-mono"} (str utils/shareable-address)]])]
-       [:div {:class "float-right text-right"} [auth-display user]]]
+       [:div {:class "float-right text-right"} [auth-display]]]
       (if-not user 
         [:div {:class "container mx-auto flex flex-wrap content-center"}
-        [:div {:class " "} (intro-view/intro-view [auth-display user]) ]
+        [:div {:class " "} (intro-view/intro-view [auth-display]) ]
         ]
         (if db-connected?
           [:div {:class "p-2"}
