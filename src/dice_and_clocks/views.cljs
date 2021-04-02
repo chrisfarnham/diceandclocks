@@ -208,13 +208,13 @@
             (on-click [position effect] (swap! dice-roll assoc :position position :effect effect))
             ]
       [:<>
-       [:div {:class "bg-gray-300 grid grid-cols-3 grid-rows-2 p-1"}
+       [:div {:class "bg-gray-300 grid grid-cols-3 grid-rows-2 p-1 pt-3"}
         [:div {:class "grid grid-cols-2"}
          (position-and-effect on-mouse-over on-mouse-out on-click)
          [:div {:class "w-64"}
           [:button {:class button-class
                     :on-click (fn [] (decrement))} "-"]
-          (str (:size @dice-roll))
+          [:span {:class "align-middle prose prose-2xl"}(str (:size @dice-roll))]
           [:button {:class button-class
                     :on-click (fn [] (increment))} "+"]]]
         [:div {:class "col-span-2 relative"}
