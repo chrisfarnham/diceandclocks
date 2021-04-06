@@ -6,6 +6,7 @@
    [dice-and-clocks.intro-view :as intro-view]
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
+   [dice-and-clocks.firebase-analytics :as analytics]
    [dice-and-clocks.subs :as subs]
    [dice-and-clocks.utils :as utils]
    [goog.string :as gstring]
@@ -163,11 +164,11 @@
   {:message-type "message" :sender name :text message})
 
 (defn persist-roll [context dice-results]
-  (rf/dispatch [::db/push {:path (:messages-path context) 
+  (rf/dispatch [::db/push {:path (:messages-path context)
                            :value (merge dice-results
                                          {:sender (:name context)
                                           :message-type "dice-roll"})}])
-)
+  (analytics/log-event :roll-dice {:channel-id (:channel context) :name (:name context)}))
 
 (def circle-button-class "text-lg fas fa-circle")
 (def little-div-class "h-3")
@@ -243,7 +244,8 @@
   (letfn [(persist-message [message]
             (rf/dispatch
              [::db/push {:value (create-message name message)
-                         :path messages-path}]))]
+                         :path messages-path}])
+              (analytics/log-event :send-message {:channel-id (:channel context) :name (:name context)}))]
   (r/with-let [new-message (r/atom nil)]
   [:<>
          [:input {:type  :text
@@ -294,6 +296,7 @@
 
     (rf/dispatch [::db/push {:path clocks-path :value clock}])
     (rf/dispatch [::db/push {:path messages-path :value clock-message}])
+    (analytics/log-event :create-clock {:channel-id (:channel context) :name (:name context) :caption caption})
 ))
 
 (defn mark-clock-deleted
@@ -457,9 +460,10 @@
                    (rf/dispatch [:channel-name channel-name])))])
               ]
              [:div {:class "grid grid-cols-2 print:grid-cols-none"}
-                   (rf/dispatch
-                    [::db/update {:value {:last-accessed (.now js/Date)}
-                                :path (:channels-path context)}])
+              (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context) })
+              (rf/dispatch
+               [::db/update {:value {:last-accessed (.now js/Date)}
+                             :path (:channels-path context)}])
               [:div {:class "mr-2 print:hidden"}
                [messages-list context]]
               [:div {:class "ml-2"}
