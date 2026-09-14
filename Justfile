@@ -4,7 +4,7 @@ deps:
     lein deps
 
 css:
-    postcss -o resources/public/css/output.css resources/public/css/styles.css
+    npx postcss -o resources/public/css/output.css resources/public/css/styles.css
 
 dev:
     cp resources/public/dev-index.html resources/public/index.html
