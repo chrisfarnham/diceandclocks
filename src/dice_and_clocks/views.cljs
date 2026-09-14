@@ -443,9 +443,15 @@
         user @(rf/subscribe [::auth/user-auth])
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
-        messages @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}])
-        clocks @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}])
         channel-name {:channel channel :name name}
+        ;; Before a channel is chosen, `channel` is "" and messages-path/
+        ;; clocks-path point at /channels/"" — Firebase correctly denies
+        ;; that read, logging a permission_denied error on every landing-page
+        ;; visit. Only subscribe once a real channel exists.
+        messages (when (channel-name-ready? channel-name)
+                   @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}]))
+        clocks (when (channel-name-ready? channel-name)
+                 @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}]))
         context {:name name 
                  :user user 
                  :channel channel 
