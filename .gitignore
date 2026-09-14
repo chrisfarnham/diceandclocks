@@ -6,6 +6,7 @@
 /resources/public/images/clocks/*
 /*-init.clj
 /*.log
+/PLAN*.md
 
 # Leiningen
 /.lein-*
@@ -19,4 +20,5 @@
 /.shadow-cljs/
 .*
 !.firebaserc
+!.github/
 /target/**
