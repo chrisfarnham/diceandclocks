@@ -12,6 +12,13 @@ and Blades in the Dark.
 This is built with [re-frame](https://github.com/day8/re-frame) and Google's Firebase. Details on the
 [re-frame template and this project](docs/REFRAME.md).
 
+Clocks and Dice is a casual hobby tool for playing over voice/video chat with friends, not a
+place to share sensitive information. A channel name is only a convenience so your group can find
+its own session instead of a stranger's — pick something specific enough that no one stumbles
+onto it by guessing, and share it just with the people in your game. It is not a security boundary
+or an authentication credential: Firebase's access rules allow any signed-in (including
+anonymous) user to read and write any channel, so channel names should not be treated as secrets.
+
 ## Acknowledgements
 
 Clocks and Dice is a personal project that is built upon other's work

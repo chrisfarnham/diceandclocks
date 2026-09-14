@@ -417,15 +417,41 @@
 (defn clocks-path [channel]
   (conj (channels-path channel) :clocks))
 
+(defn enter-channel! [context]
+  (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context)})
+  (rf/dispatch
+   [::db/update {:value {:last-accessed (.now js/Date)}
+                 :path (:channels-path context)}]))
+
+(defn channel-view
+  "Mounted once per channel entry; `enter-channel!`'s side effects must fire
+  exactly once here, not on every re-render triggered by new messages/clocks."
+  [context]
+  (r/create-class
+   {:component-did-mount #(enter-channel! context)
+    :reagent-render
+    (fn [context]
+      [:div {:class "grid grid-cols-2 print:grid-cols-none"}
+       [:div {:class "mr-2 print:hidden"}
+        [messages-list context]]
+       [:div {:class "ml-2"}
+        [clocks-list context]]])}))
+
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
         user @(rf/subscribe [::auth/user-auth])
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
-        messages @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}])
-        clocks @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}])
         channel-name {:channel channel :name name}
+        ;; Before a channel is chosen, `channel` is "" and messages-path/
+        ;; clocks-path point at /channels/"" — Firebase correctly denies
+        ;; that read, logging a permission_denied error on every landing-page
+        ;; visit. Only subscribe once a real channel exists.
+        messages (when (channel-name-ready? channel-name)
+                   @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}]))
+        clocks (when (channel-name-ready? channel-name)
+                 @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}]))
         context {:name name 
                  :user user 
                  :channel channel 
@@ -459,15 +485,7 @@
                  (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
                    (rf/dispatch [:channel-name channel-name])))])
               ]
-             [:div {:class "grid grid-cols-2 print:grid-cols-none"}
-              (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context) })
-              (rf/dispatch
-               [::db/update {:value {:last-accessed (.now js/Date)}
-                             :path (:channels-path context)}])
-              [:div {:class "mr-2 print:hidden"}
-               [messages-list context]]
-              [:div {:class "ml-2"}
-               [clocks-list context]]]
+             [channel-view context]
           )]
           ; if db not connected
           [:div "Loading..."]

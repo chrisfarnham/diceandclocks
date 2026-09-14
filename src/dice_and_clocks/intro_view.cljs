@@ -27,13 +27,14 @@
  [:div {:class "col-span-2 text-center"} sign-in]
  [:div {:class ""}]
 
-[:div {:class "col-span-4 mh-40 m-8 overflow-scroll"} 
- [:p {:class "text-sm"} 
-  "This site tends to work poorly in private browsing modes. You'll also want to openlist 
-   this site for your ad-blocker. Treat your channel name as if it were a password. It should 
-    be complex enough that no one would guess it and only share 
-    it with friends joining your game. This site is intended for casual use and exchanging 
-    non-sensitive information."]
+[:div {:class "col-span-4 mh-40 m-8 overflow-scroll"}
+ [:p {:class "text-sm"}
+  "This site tends to work poorly in private browsing modes. You'll also want to openlist
+   this site for your ad-blocker. Your channel name isn't a password or a security boundary —
+    it's just how you and your friends find the same game session instead of a stranger's.
+    Pick something specific enough that no one stumbles onto it by guessing, and share it only
+    with the people joining your game. This site is intended for casual use; please don't
+    share sensitive information here."]
 ]
 
 [:div {:class "col-span-4 grid grid-cols-1 gap-3 h-40 ml-8 overflow-scroll"}

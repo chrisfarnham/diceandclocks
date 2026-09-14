@@ -25,7 +25,7 @@
       (rf/dispatch
        (if (nil? err)
          on-success
-         on-failure)))))
+         (conj on-failure err))))))
 
 (defn ->path [p]
   (string/join "/" (->js p)))
