@@ -7,9 +7,9 @@
                  [thheller/shadow-cljs "2.11.23"]
                  [reagent "1.0.0"]
                  [re-frame "1.2.0"]
-                 [cljs-bean/cljs-bean "1.5.0"]]
+                 [cljs-bean/cljs-bean "1.9.0"]]
 
-  :plugins [[lein-shadow "0.3.1"]
+  :plugins [[lein-shadow "0.4.1"]
             [lein-shell "0.5.0"]]
 
   :min-lein-version "2.9.0"
@@ -68,7 +68,7 @@
                             ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
 
 :profiles {
-  :dev {:dependencies [[binaryage/devtools "1.0.2"]]
+  :dev {:dependencies [[binaryage/devtools "1.0.7"]]
     :source-paths ["dev"]}
   :prod {}
 }

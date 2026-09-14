@@ -1,7 +1,7 @@
 {
 	"name": "dice-and-clocks",
 	"devDependencies": {
-		"autoprefixer": "^10.2.4",
+		"autoprefixer": "^10.6.0",
 		"karma": "^6.4.4",
 		"karma-chrome-launcher": "^3.2.0",
 		"karma-cli": "^2.0.0",
@@ -13,10 +13,10 @@
 		"tailwindcss": "^2.0.3"
 	},
 	"dependencies": {
-		"@tailwindcss/typography": "^0.4.0",
+		"@tailwindcss/typography": "^0.4.1",
 		"downloadjs": "^1.4.7",
 		"haikunator": "^2.1.2",
-		"html-to-image": "^1.3.21",
+		"html-to-image": "^1.11.13",
 		"postcss-import": "^14.0.0",
 		"react": "17.0.1",
 		"react-dom": "17.0.1"
