@@ -279,7 +279,7 @@
   [:div {:class "grid grid-flow-row grid-cols-1"}
    [:div {:class "mx-2 p-2 bg-gray-300"} 
     [:span {:class "float-left w-full"} [:div {:class ""}[add-message context]]]]
-   [:div {:class "overscroll-auto overflow-auto max-h-118 grid m-1 gap-1 p-1"}
+   [:div {:class "overscroll-auto overflow-auto max-h-118 flex flex-col m-1 gap-1 p-1"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
