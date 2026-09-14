@@ -22,6 +22,15 @@ jobs:
           curl -sSL https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein -o /usr/local/bin/lein
           chmod +x /usr/local/bin/lein
           lein version
+      - name: Fetch clock images from production
+        run: |
+          mkdir -p resources/public/images/clocks
+          grep -oE '"[A-Za-z0-9]+\.png"' src/dice_and_clocks/clocks.cljs \
+            | tr -d '"' | sort -u \
+            | while read -r f; do
+                curl -sf -o "resources/public/images/clocks/$f" \
+                  "https://clocksanddice-1b45c.web.app/images/clocks/$f"
+              done
       - run: npm install && just release
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
