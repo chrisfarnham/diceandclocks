@@ -377,7 +377,7 @@
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))]
-    (when (< 1 (count clocks))
+    (when (< 0 (count clocks))
       [:div {:class "p-2"}
       [:a {:class "text-sm text-center print:hidden" :href "#"
            :on-click #(clocks-to-png)}
