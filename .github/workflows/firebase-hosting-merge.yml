@@ -29,7 +29,14 @@ jobs:
                 curl -sf -o "resources/public/images/clocks/$f" \
                   "https://clocksanddice-1b45c.web.app/images/clocks/$f"
               done
-      - run: npm install && just release
+      - run: npm install
+      - run: just ci
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "${{ github.workspace }}/target/junit/karma/*.xml"
+        if: always()
+      - run: just release
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

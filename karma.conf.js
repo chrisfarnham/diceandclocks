@@ -1,5 +1,8 @@
 module.exports = function (config) {
-  var junitOutputDir = process.env.CIRCLE_TEST_REPORTS || "target/junit"
+  // junitReporter.outputDir is resolved relative to basePath ('target'
+  // below), so this must NOT also include the "target/" prefix or the
+  // report ends up written to target/target/junit.
+  var junitOutputDir = process.env.CIRCLE_TEST_REPORTS || "junit"
 
   config.set({
     browsers: ['ChromeHeadless'],
