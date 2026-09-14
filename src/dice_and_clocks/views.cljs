@@ -353,11 +353,12 @@
 )
 (def to-png-options (clj->js {:filter clocks-to-png-filter}))
 
-(defn clocks-to-png []
+(defn clocks-to-png [context]
 (let [clock-panel-div (. js/document (getElementById "clock-panel"))]
+  (analytics/log-event :export-clocks-png {:channel-id (:channel context) :name (:name context)})
   (-> clock-panel-div
       (html-to-image/toPng to-png-options)
-      (.then 
+      (.then
        (fn [data-url] (downloadjs data-url "clocks.png")))
   )
 ))
@@ -377,10 +378,10 @@
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [clock] (display-clock context clock))))]
-    (when (< 1 (count clocks))
+    (when (< 0 (count clocks))
       [:div {:class "p-2"}
       [:a {:class "text-sm text-center print:hidden" :href "#"
-           :on-click #(clocks-to-png)}
+           :on-click #(clocks-to-png context)}
        [:i {:class "fas fa-camera"}]]])
     ]
   ]]]
