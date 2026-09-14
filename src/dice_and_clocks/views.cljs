@@ -417,6 +417,26 @@
 (defn clocks-path [channel]
   (conj (channels-path channel) :clocks))
 
+(defn enter-channel! [context]
+  (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context)})
+  (rf/dispatch
+   [::db/update {:value {:last-accessed (.now js/Date)}
+                 :path (:channels-path context)}]))
+
+(defn channel-view
+  "Mounted once per channel entry; `enter-channel!`'s side effects must fire
+  exactly once here, not on every re-render triggered by new messages/clocks."
+  [context]
+  (r/create-class
+   {:component-did-mount #(enter-channel! context)
+    :reagent-render
+    (fn [context]
+      [:div {:class "grid grid-cols-2 print:grid-cols-none"}
+       [:div {:class "mr-2 print:hidden"}
+        [messages-list context]]
+       [:div {:class "ml-2"}
+        [clocks-list context]]])}))
+
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
@@ -459,15 +479,7 @@
                  (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
                    (rf/dispatch [:channel-name channel-name])))])
               ]
-             [:div {:class "grid grid-cols-2 print:grid-cols-none"}
-              (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context) })
-              (rf/dispatch
-               [::db/update {:value {:last-accessed (.now js/Date)}
-                             :path (:channels-path context)}])
-              [:div {:class "mr-2 print:hidden"}
-               [messages-list context]]
-              [:div {:class "ml-2"}
-               [clocks-list context]]]
+             [channel-view context]
           )]
           ; if db not connected
           [:div "Loading..."]
