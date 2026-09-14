@@ -21,3 +21,6 @@ release:
 deploy:
     just release
     firebase deploy
+
+ci:
+    lein ci

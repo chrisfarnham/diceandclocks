@@ -14,13 +14,13 @@
 
   :min-lein-version "2.9.0"
 
-  :source-paths ["src"]
+  :source-paths ["src" "test"]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
 
   :shadow-cljs {:nrepl {:port 8777}
-                
+
                 :builds {:app {:target :browser
                                :output-dir "resources/public/js/compiled"
                                :asset-path "/js/compiled"
@@ -29,10 +29,16 @@
 
                                :devtools {:http-root "resources/public"
                                           :http-port 8280
-                                          }}}}
+                                          }}
+
+                          :browser-test {:target :browser-test
+                                         :test-dir "target/browser-test"}
+
+                          :karma-test {:target :karma
+                                       :output-to "target/karma-test.js"}}}
   
-  :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
-                              :default-command "karma"}
+  :shell {:commands {"karma" {:windows         ["cmd" "/c" "npx" "karma"]
+                              :default-command ["npx" "karma"]}
                      "open"  {:windows         ["cmd" "/c" "start"]
                               :macosx          "open"
                               :linux           "xdg-open"}}}
