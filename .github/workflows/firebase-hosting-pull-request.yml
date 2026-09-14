@@ -33,6 +33,11 @@ jobs:
               done
       - run: npm install
       - run: just ci
+      - name: Debug junit output
+        run: |
+          pwd
+          find . -iname "*.xml" -not -path "./node_modules/*" 2>&1
+        if: always()
       - name: Test Summary
         uses: test-summary/action@v2
         with:
