@@ -17,11 +17,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: maven
+          cache-dependency-path: project.clj
       - uses: extractions/setup-just@v2
       - run: |
           curl -sSL https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein -o /usr/local/bin/lein
           chmod +x /usr/local/bin/lein
           lein version
+      - uses: actions/cache@v4
+        with:
+          path: .shadow-cljs
+          key: shadow-cljs-${{ runner.os }}-${{ hashFiles('project.clj', 'src/**', 'test/**') }}
+          restore-keys: |
+            shadow-cljs-${{ runner.os }}-
       - name: Fetch clock images from production
         run: |
           mkdir -p resources/public/images/clocks
