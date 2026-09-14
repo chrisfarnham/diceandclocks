@@ -54,15 +54,40 @@ Use your preferred editor or IDE that supports Clojure/ClojureScript development
 ### Environment Setup
 
 1. Install [JDK 8 or later](https://openjdk.java.net/install/) (Java Development Kit)
-2. Install [Leiningen](https://leiningen.org/#install) (Clojure/ClojureScript project task &
-dependency management)
-3. Install [Node.js](https://nodejs.org/) (JavaScript runtime environment) which should include
-   [NPM](https://docs.npmjs.com/cli/npm) or if your Node.js installation does not include NPM also install it.
-7. Clone this repo and open a terminal in the `dice-and-clocks` project root directory
-8. (Optional) Download project dependencies:
+2. Install [Node.js](https://nodejs.org/) (JavaScript runtime environment), which should include
+   [NPM](https://docs.npmjs.com/cli/npm)
+3. Install the remaining build tools. On macOS with [Homebrew](https://brew.sh/):
     ```sh
-    lein deps
+    brew install leiningen just firebase-cli
     ```
+    - [Leiningen](https://leiningen.org/#install): Clojure/ClojureScript project task & dependency management
+    - [`just`](https://github.com/casey/just): runs the project's build recipes (see the [`Justfile`](../Justfile))
+    - [`firebase-cli`](https://firebase.google.com/docs/cli): needed to fetch a Firebase project config and
+      to deploy
+4. Clone this repo and open a terminal in the `dice-and-clocks` project root directory
+5. Install JS dependencies:
+    ```sh
+    npm install
+    ```
+6. Download Clojure/ClojureScript dependencies:
+    ```sh
+    just deps
+    ```
+7. Create `resources/public/firebase-init.js` from
+   [`resources/public/example-firebase-init.js`](../resources/public/example-firebase-init.js), filled in with
+   a real Firebase project's config. This file is gitignored since it is environment-specific. If you have
+   access to an existing Firebase project, log in and fetch its config:
+    ```sh
+    firebase login
+    firebase apps:list --project <project-id>
+    firebase apps:sdkconfig web <app-id> --project <project-id>
+    ```
+   Otherwise create a new Firebase project with Realtime Database enabled and register a web app in it.
+8. Download the clock images from [AshtonHand Clocks](https://acegiak.itch.io/ashtonhand-clocks) (not included
+   in this repo; see [Acknowledgements](../README.md#ashtonhand-clocks)) and extract them into
+   `resources/public/images/clocks/` (also gitignored). The app expects flat filenames directly in that
+   directory (e.g. `4b0.png`, `12b00.png`) matching [`clocks.cljs`](../src/dice_and_clocks/clocks.cljs) — not
+   nested in a `clocks/` subfolder, which is how the itch.io download's zip file is structured.
 
 ### Browser Setup
 
@@ -99,8 +124,14 @@ the enhancement request in their bug tracker:
 
 ### Running the App
 
-Start a temporary local web server, build the app with the `dev` profile, and serve the app,
-browser test runner and karma test runner with hot reload:
+Generate `index.html` and build the CSS for the `dev` profile:
+
+```sh
+just dev
+```
+
+Then start a temporary local web server and serve the app, browser test runner and karma test
+runner with hot reload:
 
 ```sh
 lein watch
