@@ -1,4 +1,24 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
+@custom-variant print {
+  @media print {
+    @slot;
+  }
+}
+
+@theme {
+  --spacing-118: 29.5rem;
+}
+
+/* Font Awesome's JS (all.min.js) converts <i> icons to inline <svg>
+   elements and injects its own unlayered stylesheet at runtime,
+   including `.svg-inline--fa { font-size: inherit; ... }`. Per the CSS
+   cascade layers spec, any unlayered rule beats a layered rule
+   regardless of specificity or source order -- and every Tailwind v4
+   utility (including text-4xl, text-lg, etc.) lives inside `@layer
+   utilities`. These unlayered rules restore each text-size utility's
+   actual value when applied alongside svg-inline--fa, using the same
+   theme variables Tailwind's own utilities read from. */
+.svg-inline--fa.text-lg { font-size: var(--text-lg); }
+.svg-inline--fa.text-4xl { font-size: var(--text-4xl); }
