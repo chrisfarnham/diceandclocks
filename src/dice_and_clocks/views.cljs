@@ -84,7 +84,7 @@
   "`message-path` includes the message-id"
   [message-path]
   (rf/dispatch
-   [::db/push {:value true :path  (conj message-path :deleted?)}]))
+   [::db/update {:value {:deleted? true} :path message-path}]))
 
 
 (defn message-container [message display & {:keys [deleteable?] :or {deleteable? true}}]
@@ -306,7 +306,7 @@
   (let [name @(rf/subscribe [::subs/name])
         channel @(rf/subscribe [::subs/channel])]
     (rf/dispatch
-     [::db/push {:value true :path  (conj clock-path :deleted?)}])
+     [::db/update {:value {:deleted? true} :path clock-path}])
     (rf/dispatch
      [::db/push {:path (subs/messages-path channel)
                  :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])))

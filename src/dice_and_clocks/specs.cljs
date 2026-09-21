@@ -64,19 +64,27 @@
 (s/def :dice-roll/effect string?)
 
 (defmethod message-type "message" [_]
-  (s/keys :req-un [:message/message-type :message/sender :message/text]))
+  (s/keys :req-un [:message/message-type :message/sender :message/text]
+          :opt-un [:message/deleted?]))
 
 (defmethod message-type "dice-roll" [_]
   (s/keys :req-un [:message/message-type :message/sender
                     :dice-roll/pool :dice-roll/result :dice-roll/size :dice-roll/critical]
-          :opt-un [:message/text :dice-roll/position :dice-roll/effect]))
+          :opt-un [:message/text :dice-roll/position :dice-roll/effect :message/deleted?]))
 
 (defmethod message-type "clock-event" [_]
+  ;; :id is present on "advanced/rolled back a clock" events (merged in
+  ;; from the clock's own already-fetched :id) but absent on "created a
+  ;; new clock" events (built from a clock map that has no :id yet,
+  ;; pre-Firebase-write) -- confirmed against 690 sampled clock-event
+  ;; messages: 530 had :id, 160 didn't, matching exactly the
+  ;; advance/roll-back vs. create-clock split in views.cljs.
   (s/keys :req-un [:message/message-type :message/sender :message/text
-                    :clock/key :clock/tic :clock/caption]))
+                    :clock/key :clock/tic :clock/caption]
+          :opt-un [:message/id :message/deleted?]))
 
 (defmethod message-type "clock-deleted" [_]
   (s/keys :req-un [:message/message-type :message/sender :clock/caption]
-          :opt-un [:message/text]))
+          :opt-un [:message/text :message/deleted?]))
 
 (s/def ::message (s/multi-spec message-type :message-type))
