@@ -10,25 +10,26 @@
  (fn [_ _]
    db/default-db))
 
-(re-frame/reg-event-db
+(re-frame/reg-fx
+ ::navigate
+ (fn [url] (set! (.-location js/window) url)))
+
+(re-frame/reg-event-fx
  :channel-name
- (fn [db [_ channel-name]]
-   (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))] 
-   (merge db channel-name)
-   (set! (.-location js/window) (str "/" (:channel channel-name) "?" (:name channel-name))))))
+ (fn [{:keys [db]} [_ channel-name]]
+   (let [{:keys [channel name] :as slugged} (update channel-name :channel utils/slugify)]
+     {:db        (merge db slugged)
+      ::navigate (str "/" channel "?" name)})))
 
-
-(re-frame/reg-event-db
+(re-frame/reg-event-fx
  :channel
- (fn [db [_ channel]]
-   (assoc db :channel channel)
-   (set! (.-location js/window) (str "/" channel))
-   ))
+ (fn [{:keys [db]} [_ channel]]
+   {:db        (assoc db :channel channel)
+    ::navigate (str "/" channel)}))
 
-(re-frame/reg-event-db
+(re-frame/reg-event-fx
  :name
- (fn [db [_ name]]
-   (assoc db :name name)
-   (set! (.-location.search js/window) name)
-   ))
+ (fn [{:keys [db]} [_ name]]
+   {:db (assoc db :name name)
+    ::navigate (str (.. js/window -location -pathname) "?" name)}))
 

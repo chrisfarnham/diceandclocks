@@ -21,6 +21,7 @@
 .*
 !.firebaserc
 !.github/
+!.claude/
 /target/**
 
 # local runs of scripts/clean-test-channels.sh
