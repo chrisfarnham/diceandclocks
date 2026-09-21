@@ -153,7 +153,7 @@
         (string/blank? position) nil
         :else (str position " ~ " effect))]
       [:div {:class "text-sm ml-4"}
-             (when-not (string/blank? position)
+             (when (and (not critical) (not (string/blank? position)))
                [action-rolls/result-description result position critical]
              )
        ]
