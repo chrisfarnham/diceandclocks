@@ -41,21 +41,19 @@
   }
 )
 
-(defn result-description [result position critical]
-  (let [position (keyword (string/lower-case position))] 
-  [:<>
-  (cond
-    (= true critical) (get (:critical descriptions) 0)
-    (= :controlled position)(cond (= result 6)    (get (:controlled descriptions) 0)
-                                  (<= 4 result 5) (get (:controlled descriptions) 1)
-                                  (<= 1 result 3) (get (:controlled descriptions) 2))
-    (= :risky position)(cond (= result 6)    (get (:risky descriptions) 0)
-                             (<= 4 result 5) (get (:risky descriptions) 1)
-                             (<= 1 result 3) (get (:risky descriptions) 2))
-    (= :desperate position)(cond (= result 6)    (get (:desperate descriptions) 0)
-                                 (<= 4 result 5) (get (:desperate descriptions) 1)
-                                 (<= 1 result 3) (get (:desperate descriptions) 2))
-    )]
-))
+(defn- result-tier
+  "Index into a position's description list for a d6 result: 6 -> 0
+  (best outcome), 4-5 -> 1, 1-3 -> 2 (worst outcome)."
+  [result]
+  (condp >= result
+    3 2
+    5 1
+    0))
 
-; combinations
+(defn result-description [result position critical]
+  (let [k (if critical :critical (keyword (string/lower-case position)))
+        i (if critical 0 (result-tier result))]
+    ;; get-in returns nil for an unmatched position/tier, which renders
+    ;; nothing -- intentional, not an oversight; every reachable
+    ;; position/result combination in this app always matches.
+    [:<> (get-in descriptions [k i])]))
