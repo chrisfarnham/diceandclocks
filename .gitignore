@@ -1,7 +1,6 @@
 /out/
 /resources/public/js/compiled/
-/resources/public/firebase-init.js
-/resources/public/index.html
+/src/dice_and_clocks/firebase_config.js
 /resources/public/css/output.css
 /resources/public/images/clocks/*
 /*-init.clj

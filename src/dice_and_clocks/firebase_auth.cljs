@@ -1,25 +1,25 @@
 (ns dice-and-clocks.firebase-auth
   (:require [re-frame.core :as rf]
-            [reagent.core :as r]))
-
-(defn auth ^js [] (.auth ^js js/firebase))
+            [reagent.core :as r]
+            [dice-and-clocks.firebase-app :as firebase-app]
+            ["firebase/auth" :refer [GoogleAuthProvider signInWithPopup
+                                      signInAnonymously signOut
+                                      onAuthStateChanged]]))
 
 (defn sign-in [auth-provider opts]
-  (-> (auth)
-      (.signInWithPopup auth-provider)
+  (-> (signInWithPopup firebase-app/auth auth-provider)
       (.catch (fn [e]
                 (if-let [handler (:error-handler opts)]
                   (handler e)
                   (js/alert e))))))
 
 (defn google-sign-in [opts]
-  (sign-in (js/firebase.auth.GoogleAuthProvider.) opts))
+  (sign-in (GoogleAuthProvider.) opts))
 
 (rf/reg-fx ::google-sign-in  google-sign-in)
 
 (defn sign-out [error-handler]
-  (-> (auth)
-      (.signOut)
+  (-> (signOut firebase-app/auth)
       (.catch (fn [e] (if error-handler (error-handler e) (js/console.log e)))))
   (set! (.-location js/window) "/"))
 
@@ -36,7 +36,7 @@
         callback (fn [x]
                    (reset! auth-state (user->data x)))
         error-callback (fn [x] (reset! auth-state x))]
-    (.onAuthStateChanged (auth)
+    (onAuthStateChanged firebase-app/auth
                          callback
                          error-callback)
     auth-state))
@@ -55,7 +55,7 @@
                   ;; onAuthStateChanged's callback (which is what
                   ;; actually updates user-info's atom) has fired even
                   ;; once.
-                  (-> (auth) (.signInAnonymously)))
+                  (signInAnonymously firebase-app/auth))
                 (when-not errored? user))))
 
 (rf/reg-sub ::uid

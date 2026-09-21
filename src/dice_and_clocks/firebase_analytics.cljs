@@ -1,10 +1,9 @@
 (ns dice-and-clocks.firebase-analytics
   (:require [cljs-bean.core :refer [->js]]
-            [dice-and-clocks.config :as config]))
-
-(defn analytics ^js [] (.analytics ^js js/firebase))
+            [dice-and-clocks.config :as config]
+            [dice-and-clocks.firebase-app :as firebase-app]
+            ["firebase/analytics" :refer [logEvent]]))
 
 (defn log-event [event properties]
   (when (config/track-analytics?)
-    (-> (analytics)
-        (.logEvent (name event) (->js properties)))))
+    (logEvent firebase-app/analytics (name event) (->js properties))))

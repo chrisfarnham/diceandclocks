@@ -1,11 +1,12 @@
 (defproject dice-and-clocks "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.10.3"]
-                 [org.clojure/clojurescript "1.10.844"
+  :dependencies [[org.clojure/clojure "1.12.6"]
+                 [org.clojure/clojurescript "1.12.145"
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
-                 [thheller/shadow-cljs "2.11.23"]
-                 [reagent "1.0.0"]
+                 [thheller/shadow-cljs "3.5.3"]
+                 [com.google.javascript/closure-compiler "v20260907"]
+                 [reagent "2.0.1"]
                  [re-frame "1.2.0"]
                  [cljs-bean/cljs-bean "1.9.0"]]
 

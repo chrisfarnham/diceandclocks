@@ -39,6 +39,11 @@ jobs:
                 curl -sf -o "resources/public/images/clocks/$f" \
                   "https://clocksanddice-1b45c.web.app/images/clocks/$f"
               done
+      - name: Write Firebase web config
+        run: |
+          cat > src/dice_and_clocks/firebase_config.js <<'EOF'
+          export const firebaseConfig = ${{ secrets.FIREBASE_WEB_CONFIG }};
+          EOF
       - run: npm install
       - run: just ci
       - name: Test Summary

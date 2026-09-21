@@ -1,1 +1,1 @@
-{:npm-dev-deps {"shadow-cljs"           "2.11.23"}}
+{:npm-dev-deps {"shadow-cljs"           "3.5.3"}}

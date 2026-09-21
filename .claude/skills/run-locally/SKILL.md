@@ -7,18 +7,20 @@ description: Build and run the Clocks and Dice app locally, serving it against r
 
 ## Prerequisites (one-time per machine)
 
-1. `resources/public/firebase-init.js` must exist. It's gitignored — copy
-   `resources/public/example-firebase-init.js` and fill in the real config
-   (ask Chris, or pull from the existing file if already present locally).
-   Without it, `firebase` is undefined and the app throws immediately.
-2. `npm install` (installs `firebase-tools`/build deps — may get wiped by
-   `just ci`'s `npm ci` step, so re-run after running the test suite).
+1. `src/dice_and_clocks/firebase_config.js` must exist. It's gitignored —
+   copy `src/dice_and_clocks/example_firebase_config.js` and fill in the
+   real config (ask Chris, or pull from the existing file if already
+   present locally). Without it, `firebase_app.cljs`'s `initializeApp`
+   call throws immediately at load.
+2. `npm install` (installs `firebase`/`firebase-tools`/build deps — may
+   get wiped by `just ci`'s `npm ci` step, so re-run after running the
+   test suite).
 
 ## Build
 
 ```bash
-just dev                                              # copies dev-index.html -> index.html, builds CSS
-lein run -m shadow.cljs.devtools.cli compile app      # compiles the app.js used by dev-index.html
+just dev                                              # builds CSS (index.html is committed directly, no copy step)
+lein run -m shadow.cljs.devtools.cli compile app      # compiles the app.js used by index.html
 ```
 
 Do **not** use `lein watch` / `just watch` for a one-shot check — it also

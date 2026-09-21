@@ -19,6 +19,25 @@ onto it by guessing, and share it just with the people in your game. It is not a
 or an authentication credential: Firebase's access rules allow any signed-in (including
 anonymous) user to read and write any channel, so channel names should not be treated as secrets.
 
+## Development
+
+This is a ClojureScript/shadow-cljs app using re-frame/reagent for the UI and
+Firebase (Realtime Database, Auth, Analytics) as its backend, via Firebase's
+v9+ modular SDK (bundled via npm, not the CDN `<script>` compat build).
+
+Toolchain versions are kept in lockstep across three files — `project.clj`
+(`:dependencies` for the JVM/Clojure side), `package.json`
+(`devDependencies`/`dependencies` for the npm side), and `src/deps.cljs`
+(`:npm-dev-deps`, which `lein-shadow` treats as the source of truth for the
+npm `shadow-cljs` version and re-syncs into `package.json` on every
+`lein ci`/`lein watch`/`lein release` run — update it, not just
+`package.json`, when bumping shadow-cljs).
+
+To run locally, see [.claude/skills/run-locally/SKILL.md](.claude/skills/run-locally/SKILL.md)
+(requires a local `src/dice_and_clocks/firebase_config.js`, copied from
+`src/dice_and_clocks/example_firebase_config.js` and filled in with your
+Firebase project's config).
+
 ## Acknowledgements
 
 Clocks and Dice is a personal project that is built upon other's work
