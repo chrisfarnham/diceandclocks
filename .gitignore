@@ -22,3 +22,6 @@
 !.firebaserc
 !.github/
 /target/**
+
+# local runs of scripts/clean-test-channels.sh
+/test-channel-backups/
