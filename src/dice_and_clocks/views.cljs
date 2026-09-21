@@ -3,6 +3,7 @@
    [clojure.string :as string]
    [dice-and-clocks.action-rolls :as action-rolls]
    [dice-and-clocks.clocks :as clocks]
+   [dice-and-clocks.config :as config]
    [dice-and-clocks.intro-view :as intro-view]
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
@@ -421,7 +422,8 @@
 (defn enter-channel! [context]
   (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context)})
   (rf/dispatch
-   [::db/update {:value {:last-accessed (.now js/Date)}
+   [::db/update {:value (cond-> {:last-accessed (.now js/Date)}
+                          (config/preview-channel?) (assoc :test true))
                  :path (:channels-path context)}]))
 
 (defn channel-view

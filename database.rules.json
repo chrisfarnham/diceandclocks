@@ -2,7 +2,8 @@
   "rules": {
     "channels": {
     ".read": "auth.uid != null",
-    ".write": "auth.uid != null"
+    ".write": "auth.uid != null",
+    ".indexOn": ["test"]
     }
   }
 }
