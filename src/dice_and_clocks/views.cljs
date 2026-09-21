@@ -91,7 +91,7 @@
    (let  [{:keys [id]} message
           {:keys [messages-path]} context]
      ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
-     [:div {:class "bg-gray-300 min-h-12 rounded-md flex p-2 relative"}
+     [:div {:class "bg-gray-300 min-h-[3rem] rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
