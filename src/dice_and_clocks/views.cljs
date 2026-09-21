@@ -134,7 +134,10 @@
 (defmethod display-message "dice-roll" [message]
   (let [{:keys [id sender result pool text size position effect critical]} message]
     (message-container message (fn []
-    [:div {:class "w-full grid grid-cols-2"}
+    [:<>
+     (when critical
+       [:div {:class "absolute inset-0 rounded-md animate-critical-flash pointer-events-none"}])
+     [:div {:class "w-full grid grid-cols-2"}
      [:div {:class "inline-block align-middle"}
       [:div (str sender)]
       [:span {:class ""}
@@ -145,16 +148,17 @@
       [:div (when-not (string/blank? text) [:span (str "\"" text "\"") [:br]])]]
      [:div {:class ""}
       [:div {:class "text-center text-xl"}
-      (if (string/blank? position)
-        (when critical "Critical!")
-        (str position " ~ " effect))]
+      (cond
+        critical [:span {:class "text-3xl font-extrabold text-red-600 animate-critical-fade-in"} "Critical!"]
+        (string/blank? position) nil
+        :else (str position " ~ " effect))]
       [:div {:class "text-sm ml-4"}
-             (when-not (string/blank? position) 
+             (when-not (string/blank? position)
                [action-rolls/result-description result position critical]
              )
        ]
-      
-     ]
+
+     ]]
     ])
 )))
 

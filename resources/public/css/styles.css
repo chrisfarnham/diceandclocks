@@ -9,6 +9,20 @@
 
 @theme {
   --spacing-118: 29.5rem;
+  --animate-critical-fade-in: critical-fade-in 0.6s ease-out;
+  --animate-critical-flash: critical-flash 0.8s ease-out;
+}
+
+@keyframes critical-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* A bright burst across a critical roll's own message row, settling back
+   to transparent so the row's normal bg-gray-300 shows through again. */
+@keyframes critical-flash {
+  0%   { background-color: oklch(70% 0.2 40); }
+  100% { background-color: transparent; }
 }
 
 /* Font Awesome's JS (all.min.js) converts <i> icons to inline <svg>
