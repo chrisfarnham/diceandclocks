@@ -7,7 +7,7 @@
                  [thheller/shadow-cljs "3.5.3"]
                  [com.google.javascript/closure-compiler "v20260907"]
                  [reagent "2.0.1"]
-                 [re-frame "1.2.0"]
+                 [re-frame "1.4.7"]
                  [cljs-bean/cljs-bean "1.9.0"]]
 
   :plugins [[lein-shadow "0.4.1"]
