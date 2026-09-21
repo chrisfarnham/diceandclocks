@@ -36,8 +36,9 @@
 (defn channel-name-ready? [channel-name]
   (not (some string/blank? (vals channel-name))))
 
-(defn add-channel [context persist-channel-name]
-  (let [{:keys [name channel]} context
+(defn add-channel [persist-channel-name]
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])
         channel (if (string/blank? channel) (create-channel-id) channel)]
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
    
@@ -86,9 +87,10 @@
    [::db/push {:value true :path  (conj message-path :deleted?)}]))
 
 
-(defn message-container [context message display & {:keys [deleteable?] :or {deleteable? true}}]
+(defn message-container [message display & {:keys [deleteable?] :or {deleteable? true}}]
    (let  [{:keys [id]} message
-          {:keys [messages-path]} context]
+          channel @(rf/subscribe [::subs/channel])
+          messages-path (subs/messages-path channel)]
      [:div {:class "bg-gray-300 rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
@@ -96,42 +98,42 @@
          [:button {:class "text-white" :on-click #(mark-deleted! (conj messages-path id))} "x"]])
     ]))
 
-(defmulti display-message (fn [_ message] (:message-type message)))
+(defmulti display-message (fn [message] (:message-type message)))
 
-(defmethod display-message "message" [context message]
+(defmethod display-message "message" [message]
   (let [{:keys [sender text] } message]
-  (message-container context message (fn []
+  (message-container message (fn []
   [:div {:class "message"}
    [:div {:class ""} (str sender " - " text)]]))
   ))
 
 
-(defmethod display-message "clock-deleted" [context message]
+(defmethod display-message "clock-deleted" [message]
 (let [{:keys [sender clock-path caption]} message]
-  (message-container context message (fn []
+  (message-container message (fn []
   [:div {:class ""}
    [:span (str "\"" caption "\"")]
-   [:div {:class "space-x-4"}(str sender " deleted a clock.") 
+   [:div {:class "space-x-4"}(str sender " deleted a clock.")
     [:button {:class button-class
               :on-click (fn [] (rf/dispatch [::db/update {:path clock-path :value {:deleted? nil}}]))} "Restore"]]
   ])
 :deleteable? false)))
 
-(defmethod display-message "clock-event" [context message]
+(defmethod display-message "clock-event" [message]
   (let [{:keys [sender text caption key tic]} message]
     (message-container
-     context message
+     message
      (fn []
        [:div {:class ""}
         [:span {:class ""} (str "\"" caption "\"")]
         [:div {:class "space-x-4"}
          [:span {:class "inline-block"} (str sender " " text)]
-         [:span {:class "inline-block"} [:img {:class "inline w-8" :src (str "images/clocks/" (clocks/get-face key tic))}]]]]) 
+         [:span {:class "inline-block"} [:img {:class "inline w-8" :src (str "images/clocks/" (clocks/get-face key tic))}]]]])
      :deleteable? false)))
 
-(defmethod display-message "dice-roll" [context message]
+(defmethod display-message "dice-roll" [message]
   (let [{:keys [id sender result pool text size position effect critical]} message]
-    (message-container context message (fn []
+    (message-container message (fn []
     [:div {:class "w-full grid grid-cols-2"}
      [:div {:class "inline-block align-middle"}
       [:div (str sender)]
@@ -156,18 +158,20 @@
     ])
 )))
 
-(defmethod display-message :default [_ message]
+(defmethod display-message :default [message]
   (println (str "default display-message: " message)))
 
 (defn create-message [name message]
   {:message-type "message" :sender name :text message})
 
-(defn persist-roll [context dice-results]
-  (rf/dispatch [::db/push {:path (:messages-path context)
-                           :value (merge dice-results
-                                         {:sender (:name context)
-                                          :message-type "dice-roll"})}])
-  (analytics/log-event :roll-dice {:channel-id (:channel context) :name (:name context)}))
+(defn persist-roll [dice-results]
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])]
+    (rf/dispatch [::db/push {:path (subs/messages-path channel)
+                             :value (merge dice-results
+                                           {:sender name
+                                            :message-type "dice-roll"})}])
+    (analytics/log-event :roll-dice {:channel-id channel :name name})))
 
 (def circle-button-class "text-lg fas fa-circle")
 (def little-div-class "h-3")
@@ -195,13 +199,13 @@
 
 (def proto-dice-roll {:size 0 :position nil :effect nil :text nil})
 
-(defn roll-dice [context]
+(defn roll-dice []
   (r/with-let [dice-roll (r/atom proto-dice-roll) p-and-e-label (r/atom nil)]
     (let [increment (fn [] (swap! dice-roll update :size #(min 9 (inc %))))
           decrement (fn [] (swap! dice-roll update :size #(max 0 (dec %))))
           roll (fn []
-                 (persist-roll context (merge @dice-roll
-                                               (action-rolls/generate-dice-results (:size @dice-roll))))
+                 (persist-roll (merge @dice-roll
+                                       (action-rolls/generate-dice-results (:size @dice-roll))))
                  (reset! dice-roll proto-dice-roll))
           position-and-effect-set? (fn [] (let [{:keys [position effect]} @dice-roll] (not-any? nil? [position effect])))
           on-mouse-over (fn [position effect] (reset! p-and-e-label (str position " ~ " effect)))
@@ -238,13 +242,14 @@
        )))
 
 
-(defn add-message [context]
-  (let [{:keys [messages-path name]} context
+(defn add-message []
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])
         persist-message (fn [message]
                            (rf/dispatch
                             [::db/push {:value (create-message name message)
-                                        :path messages-path}])
-                           (analytics/log-event :send-message {:channel-id (:channel context) :name (:name context)}))]
+                                        :path (subs/messages-path channel)}])
+                           (analytics/log-event :send-message {:channel-id channel :name name}))]
   (r/with-let [new-message (r/atom nil)]
   [:<>
          [:input {:type  :text
@@ -267,47 +272,53 @@
   [[id entity]]
   (assoc entity :id id))
 
-(defn messages-list [context]
-  (let [messages (->> (:messages context) reverse (map entry->entity))]
+(defn messages-list []
+  (let [messages (->> @(rf/subscribe [::subs/messages]) reverse (map entry->entity))]
   [:<>
   [:div {:class content-box-class}
-  [:div {:class "p-2"} [roll-dice context]]
+  [:div {:class "p-2"} [roll-dice]]
   [:div {:class "grid grid-flow-row grid-cols-1"}
-   [:div {:class "mx-2 p-2 bg-gray-300"} 
-    [:span {:class "float-left w-full"} [:div {:class ""}[add-message context]]]]
+   [:div {:class "mx-2 p-2 bg-gray-300"}
+    [:span {:class "float-left w-full"} [:div {:class ""}[add-message]]]]
    [:div {:class "overscroll-auto overflow-auto max-h-118 flex flex-col m-1 gap-1 p-1"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
          ;(map (fn [message] [:p "Message would go here!"]))
-         (map (fn [{:keys [id] :as message}] ^{:key id} [display-message context message]))
+         (map (fn [{:keys [id] :as message}] ^{:key id} [display-message message]))
          )]]]]
 ))
 
-(defn create-clock [context key caption]
-  (let [{:keys [name messages-path clocks-path clock-count]} context
+(defn create-clock [key caption]
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])
+        clock-count (count @(rf/subscribe [::subs/clocks]))
         clock {:key key :creator name :caption caption :tic 0 :order clock-count}
         clock-message {:message-type "clock-event" :sender name :text "created a new clock"}
         clock-message (merge clock-message clock)]
 
-    (rf/dispatch [::db/push {:path clocks-path :value clock}])
-    (rf/dispatch [::db/push {:path messages-path :value clock-message}])
-    (analytics/log-event :create-clock {:channel-id (:channel context) :name (:name context) :caption caption})
+    (rf/dispatch [::db/push {:path (subs/clocks-path channel) :value clock}])
+    (rf/dispatch [::db/push {:path (subs/messages-path channel) :value clock-message}])
+    (analytics/log-event :create-clock {:channel-id channel :name name :caption caption})
 ))
 
 (defn mark-clock-deleted!
-  [context clock-path caption]
-  (let [{:keys [name messages-path]} context]
+  [clock-path caption]
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])]
     (rf/dispatch
      [::db/push {:value true :path  (conj clock-path :deleted?)}])
     (rf/dispatch
-     [::db/push {:path messages-path
+     [::db/push {:path (subs/messages-path channel)
                  :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])))
 
 (def clock-button-class "px-1 text-3xl font-extra-bold")
 
-(defn display-clock [context clock]
-  (let [{:keys [clocks-path messages-path name]} context
+(defn display-clock [clock]
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])
+        clocks-path (subs/clocks-path channel)
+        messages-path (subs/messages-path channel)
         {:keys [key tic id caption creator]} clock
         this-clock-path (conj clocks-path id)
         clock-face (clocks/get-face key tic)]
@@ -329,7 +340,7 @@
                           ))]
     [:div {:class "bg-gray-200 relative"}
         [:div {:class "absolute top-2 right-4"}
-         [:button {:class "print:hidden" :on-click #(mark-clock-deleted! context this-clock-path caption)} "x"]]
+         [:button {:class "print:hidden" :on-click #(mark-clock-deleted! this-clock-path caption)} "x"]]
     [:div {:class "h-full m-px p-2 bg-gray-300"}
      [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block print:hidden"}
@@ -346,9 +357,11 @@
     (not= tag-name "BUTTON")))
 (def to-png-options (clj->js {:filter clocks-to-png-filter?}))
 
-(defn clocks-to-png [context]
-(let [clock-panel-div (. js/document (getElementById "clock-panel"))]
-  (analytics/log-event :export-clocks-png {:channel-id (:channel context) :name (:name context)})
+(defn clocks-to-png []
+(let [clock-panel-div (. js/document (getElementById "clock-panel"))
+      name @(rf/subscribe [::subs/name])
+      channel @(rf/subscribe [::subs/channel])]
+  (analytics/log-event :export-clocks-png {:channel-id channel :name name})
   (-> clock-panel-div
       (html-to-image/toPng to-png-options)
       (.then
@@ -357,33 +370,32 @@
 ))
 
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
-(defn display-clocks [context]
-  (let [{:keys [clocks]} context
-        clocks (->> clocks reverse (map entry->entity))]
+(defn display-clocks []
+  (let [clocks (->> @(rf/subscribe [::subs/clocks]) reverse (map entry->entity))]
   [:div {:class content-box-class}
    [:div {:class "p-2"}
-     [:div {:class "bg-gray-300 p-3"} 
+     [:div {:class "bg-gray-300 p-3"}
    [:div {:class "overscroll-auto overflow-auto max-h-118 print:container print:overflow-visible"
           }
     ; This div is specifically to support PNG downloads of clocks
     [:div {:class "grid grid grid-cols-3 flex relative bg-gray-300" :id "clock-panel"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
-         (map (fn [{:keys [id] :as clock}] ^{:key id} [display-clock context clock])))]
+         (map (fn [{:keys [id] :as clock}] ^{:key id} [display-clock clock])))]
     (when (< 0 (count clocks))
       [:div {:class "p-2"}
       [:a {:class "text-sm text-center print:hidden" :href "#"
-           :on-click #(clocks-to-png context)}
+           :on-click #(clocks-to-png)}
        [:i {:class "fas fa-camera"}]]])
     ]
   ]]]
 ))
 
 
-(defn clocks-list [context]
+(defn clocks-list []
   (r/with-let [caption (r/atom "")]
   (let [click-clock (fn [clock-key]
-                       (create-clock context clock-key @caption)
+                       (create-clock clock-key @caption)
                        (reset! caption ""))]
   [:div {:class content-box-class}
    [:div {:class "p-2 print:hidden"}
@@ -400,38 +412,31 @@
              ^{:key key} [:button {:on-click #(click-clock key)}
                           [:img {:class "w-8" :src (str "images/clocks/" face)}]])
            clocks/clock-types)]]]
-    [display-clocks context]]
+    [display-clocks]]
   )))
 
-(defn channels-path [channel]
-  [:channels (keyword channel)])
-
-(defn messages-path [channel]
-  (conj (channels-path channel) :messages))
-
-(defn clocks-path [channel]
-  (conj (channels-path channel) :clocks))
-
-(defn enter-channel! [context]
-  (analytics/log-event :enter-channel {:channel-id (:channel context) :name (:name context)})
-  (rf/dispatch
-   [::db/update {:value (cond-> {:last-accessed (.now js/Date)}
-                          (config/preview-channel?) (assoc :test true))
-                 :path (:channels-path context)}]))
+(defn enter-channel! []
+  (let [name @(rf/subscribe [::subs/name])
+        channel @(rf/subscribe [::subs/channel])]
+    (analytics/log-event :enter-channel {:channel-id channel :name name})
+    (rf/dispatch
+     [::db/update {:value (cond-> {:last-accessed (.now js/Date)}
+                            (config/preview-channel?) (assoc :test true))
+                   :path (subs/channels-path channel)}])))
 
 (defn channel-view
   "Mounted once per channel entry; `enter-channel!`'s side effects must fire
   exactly once here, not on every re-render triggered by new messages/clocks."
-  [context]
+  []
   (r/create-class
-   {:component-did-mount #(enter-channel! context)
+   {:component-did-mount #(enter-channel!)
     :reagent-render
-    (fn [context]
+    (fn []
       [:div {:class "grid grid-cols-2 print:grid-cols-none"}
        [:div {:class "mr-2 print:hidden"}
-        [messages-list context]]
+        [messages-list]]
        [:div {:class "ml-2"}
-        [clocks-list context]]])}))
+        [clocks-list]]])}))
 
 
 (defn main-panel []
@@ -439,24 +444,7 @@
         user @(rf/subscribe [::auth/user-auth])
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
-        channel-name {:channel channel :name name}
-        ;; Before a channel is chosen, `channel` is "" and messages-path/
-        ;; clocks-path point at /channels/"" — Firebase correctly denies
-        ;; that read, logging a permission_denied error on every landing-page
-        ;; visit. Only subscribe once a real channel exists.
-        messages (when (channel-name-ready? channel-name)
-                   @(rf/subscribe [::db/realtime-value {:path (messages-path channel)}]))
-        clocks (when (channel-name-ready? channel-name)
-                 @(rf/subscribe [::db/realtime-value {:path (clocks-path channel)}]))
-        context {:name name 
-                 :user user 
-                 :channel channel 
-                 :messages messages
-                 :clocks clocks
-                 :clock-count (count clocks)
-                 :channels-path (channels-path channel)
-                 :messages-path (messages-path channel)
-                 :clocks-path (clocks-path channel)}]
+        channel-name {:channel channel :name name}]
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
       [:div {:class "grid grid-cols-3 mt-1"}
@@ -476,11 +464,11 @@
            (if-not (channel-name-ready? channel-name)
              [:div {:class "absolute"}
               [intro-view/intro-view
-               [add-channel context
+               [add-channel
                 (fn [channel-name]
                   (rf/dispatch [:channel-name channel-name]))]]
               ]
-             [channel-view context]
+             [channel-view]
           )]
           ; if db not connected
           [:div "Loading..."]
