@@ -2,6 +2,14 @@
   (:require [cljs.test :refer-macros [deftest is testing]]
             [dice-and-clocks.action-rolls :as action-rolls]))
 
+(deftest combinations-test
+  (testing "every position is paired with every effect, exactly once"
+    (is (= (* (count action-rolls/positions) (count action-rolls/effects))
+           (count action-rolls/combinations)))
+    (is (= (set action-rolls/combinations)
+           (set (for [p action-rolls/positions e action-rolls/effects]
+                  {:position p :effect e}))))))
+
 (deftest generate-dice-results-test
   (testing "size 0 rolls a 2-dice pool and takes the minimum, never a critical"
     (dotimes [_ 20]

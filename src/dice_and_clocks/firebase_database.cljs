@@ -79,7 +79,7 @@
     (.on ref "value" callback (success-failure-dispatch args))
     (ratom/make-reaction
      (fn [] @reaction)
-     :on-dispose #(do (.off ref "value" callback)))))
+     :on-dispose #(.off ref "value" callback))))
 
 (rf/reg-sub ::realtime-value
             (fn [[_ args]]

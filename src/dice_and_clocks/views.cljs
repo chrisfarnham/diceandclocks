@@ -10,7 +10,6 @@
    [dice-and-clocks.firebase-analytics :as analytics]
    [dice-and-clocks.subs :as subs]
    [dice-and-clocks.utils :as utils]
-   [goog.string :as gstring]
    [re-frame.core :as rf]
    [reagent.core :as r]
    [haikunator :as Haikunator]
@@ -19,7 +18,7 @@
    ))
 
 
-(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
+(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
 
 (def button-class "bg-grey-500 p-1 m-1 border-2 border-black print:hidden")
 
@@ -39,7 +38,7 @@
 
 (defn add-channel [context persist-channel-name]
   (let [{:keys [name channel]} context
-        channel (if (= "" channel) (create-channel-id) channel)]
+        channel (if (string/blank? channel) (create-channel-id) channel)]
   (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
    
   [:div {:class "space-y-2 space-x-2 text-center"}
@@ -49,7 +48,7 @@
    [:input {:type :text
             :class text-input-class
             :value (:channel @new-channel-name)
-            :placeholder (if (= "" (:channel @new-channel-name)) "Channel Name" (:channel @new-channel-name))
+            :placeholder (if (string/blank? (:channel @new-channel-name)) "Channel Name" (:channel @new-channel-name))
             :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]
     ]
    [:span {:class "block"}
@@ -65,7 +64,7 @@
                          (persist-channel-name @new-channel-name)
                          (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
 
-(def int-dice-map 
+(def dice-icon-class 
   {1 "fas fa-dice-one"
    2 "fas fa-dice-two"
    3 "fas fa-dice-three"
@@ -73,14 +72,14 @@
    5 "fas fa-dice-five"
    6 "fas fa-dice-six"})
 
-(defn int-to-dice 
+(defn dice-icon 
   ([die-result]
-   (int-to-dice die-result nil))
+   (dice-icon die-result nil))
   ([die-result id]
-   (let [die-class (get int-dice-map die-result)]
+   (let [die-class (get dice-icon-class die-result)]
      ^{:key id}[:i {:class (str die-class " text-4xl m-1")}])))
 
-(defn mark-deleted
+(defn mark-deleted!
   "`message-path` includes the message-id"
   [message-path]
   (rf/dispatch
@@ -90,12 +89,11 @@
 (defn message-container [context message display & {:keys [deleteable?] :or {deleteable? true}}]
    (let  [{:keys [id]} message
           {:keys [messages-path]} context]
-     ^{:key id} ; https://stackoverflow.com/questions/33446913/reagent-react-clojurescript-warning-every-element-in-a-seq-should-have-a-unique
      [:div {:class "bg-gray-300 rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
-         [:button {:class "text-white" :on-click #(mark-deleted (conj messages-path id))} "x"]])
+         [:button {:class "text-white" :on-click #(mark-deleted! (conj messages-path id))} "x"]])
     ]))
 
 (defmulti display-message (fn [_ message] (:message-type message)))
@@ -139,14 +137,14 @@
       [:div (str sender)]
       [:span {:class ""}
        [:span {:class "inline-block align-bottom"}
-        (map-indexed (fn [index item] (int-to-dice item (str id "-" index))) pool)]
+        (map-indexed (fn [index item] (dice-icon item (str id "-" index))) pool)]
        [:span {:class "text-4xl align-middle"} (str " : " result)]
        [:span {:class "text-xs italic"} (str " (" size " dice)") [:br]]]
       [:div (when-not (string/blank? text) [:span (str "\"" text "\"") [:br]])]]
      [:div {:class ""}
       [:div {:class "text-center text-xl"}
       (if (string/blank? position)
-        (when (= critical true) "Critical!")
+        (when critical "Critical!")
         (str position " ~ " effect))]
       [:div {:class "text-sm ml-4"}
              (when-not (string/blank? position) 
@@ -175,7 +173,7 @@
 (def little-div-class "h-3")
 
 
-(defn position-and-effect [on-mouse-over on-mouse-out on-click]
+(defn position-and-effect [{:keys [on-mouse-over on-mouse-out on-click]}]
   [:div {:class "relative"}
   [:div {:class "container absolute inset-y-0 right-0 w-16 h-12 grid grid-cols-4 gap-2"}
    (map-indexed 
@@ -199,26 +197,26 @@
 
 (defn roll-dice [context]
   (r/with-let [dice-roll (r/atom proto-dice-roll) p-and-e-label (r/atom nil)]
-    (letfn [(increment [] (when (< (:size @dice-roll) 9) (swap! dice-roll assoc :size (inc (:size @dice-roll)))))
-            (decrement [] (when (< 0 (:size @dice-roll)) (swap! dice-roll assoc :size (dec (:size @dice-roll)))))
-            (roll[] (persist-roll context (merge @dice-roll
-                                                 (action-rolls/generate-dice-results (:size @dice-roll)))) 
+    (let [increment (fn [] (swap! dice-roll update :size #(min 9 (inc %))))
+          decrement (fn [] (swap! dice-roll update :size #(max 0 (dec %))))
+          roll (fn []
+                 (persist-roll context (merge @dice-roll
+                                               (action-rolls/generate-dice-results (:size @dice-roll))))
                  (reset! dice-roll proto-dice-roll))
-            (position-and-effect-set? [] (let [{:keys [position effect]} @dice-roll](not-any? nil? [position effect])))
-            (on-mouse-over [position effect] (reset! p-and-e-label (str position " ~ " effect)))
-            (on-mouse-out [] (reset! p-and-e-label nil))
-            (on-click [position effect] (swap! dice-roll assoc :position position :effect effect))
-            ]
+          position-and-effect-set? (fn [] (let [{:keys [position effect]} @dice-roll] (not-any? nil? [position effect])))
+          on-mouse-over (fn [position effect] (reset! p-and-e-label (str position " ~ " effect)))
+          on-mouse-out (fn [] (reset! p-and-e-label nil))
+          on-click (fn [position effect] (swap! dice-roll assoc :position position :effect effect))]
       [:<>
        [:div {:class "bg-gray-300 grid grid-cols-3 grid-rows-2 p-1 pt-3"}
         [:div {:class "grid grid-cols-2"}
-         (position-and-effect on-mouse-over on-mouse-out on-click)
+         [position-and-effect {:on-mouse-over on-mouse-over :on-mouse-out on-mouse-out :on-click on-click}]
          [:div {:class "w-64"}
           [:button {:class button-class
-                    :on-click (fn [] (decrement))} "-"]
+                    :on-click decrement} "-"]
           [:span {:class "align-middle prose prose-2xl"}(str (:size @dice-roll))]
           [:button {:class button-class
-                    :on-click (fn [] (increment))} "+"]]]
+                    :on-click increment} "+"]]]
         [:div {:class "col-span-2 relative"}
          [:input {:type :text
                   :class (str text-input-class "")
@@ -226,8 +224,8 @@
                   :placeholder "Roll caption"
                   :max-length "100"
                   :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))}]
-         [:button {:class (str "absolute inset-y-0 right-0" button-class)
-                   :on-click (fn [] (roll))} "Roll"]]
+         [:button {:class (str "absolute inset-y-0 right-0 " button-class)
+                   :on-click roll} "Roll"]]
         [:div]
         [:div {:class "col-span-2"}
          [:p {:class (str "mt-3 text-2xl" 
@@ -241,12 +239,12 @@
 
 
 (defn add-message [context]
-  (let [{:keys [messages-path name]} context]
-  (letfn [(persist-message [message]
-            (rf/dispatch
-             [::db/push {:value (create-message name message)
-                         :path messages-path}])
-              (analytics/log-event :send-message {:channel-id (:channel context) :name (:name context)}))]
+  (let [{:keys [messages-path name]} context
+        persist-message (fn [message]
+                           (rf/dispatch
+                            [::db/push {:value (create-message name message)
+                                        :path messages-path}])
+                           (analytics/log-event :send-message {:channel-id (:channel context) :name (:name context)}))]
   (r/with-let [new-message (r/atom nil)]
   [:<>
          [:input {:type  :text
@@ -261,19 +259,16 @@
                :on-click (fn []
                            (persist-message @new-message)
                            (reset! new-message nil))} "Send"]])))
-)
 
 (def content-box-class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100")
 
-(defn process-message
-  "Destructure the id and add it to the message map as a field"
-[message]
-(let [[id  message] message] (assoc message :id id))
-)
+(defn entry->entity
+  "Firebase returns {id entity}; fold the id into the entity map."
+  [[id entity]]
+  (assoc entity :id id))
 
 (defn messages-list [context]
-  (let [messages (reverse (:messages context))
-        messages (->> messages (map process-message))]
+  (let [messages (->> (:messages context) reverse (map entry->entity))]
   [:<>
   [:div {:class content-box-class}
   [:div {:class "p-2"} [roll-dice context]]
@@ -285,7 +280,7 @@
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
          ;(map (fn [message] [:p "Message would go here!"]))
-         (map (fn [message] (display-message context message)))
+         (map (fn [{:keys [id] :as message}] ^{:key id} [display-message context message]))
          )]]]]
 ))
 
@@ -300,8 +295,7 @@
     (analytics/log-event :create-clock {:channel-id (:channel context) :name (:name context) :caption caption})
 ))
 
-(defn mark-clock-deleted
-  "`message-path` includes the message-id"
+(defn mark-clock-deleted!
   [context clock-path caption]
   (let [{:keys [name messages-path]} context]
     (rf/dispatch
@@ -333,10 +327,9 @@
                           (rf/dispatch [::db/update {:path this-clock-path :value new-values}])
                           (rf/dispatch [::db/push {:path messages-path :value clock-message}]))
                           ))]
-    ^{:key id}
     [:div {:class "bg-gray-200 relative"}
         [:div {:class "absolute top-2 right-4"}
-         [:button {:class "print:hidden" :on-click #(mark-clock-deleted context this-clock-path caption)} "x"]]
+         [:button {:class "print:hidden" :on-click #(mark-clock-deleted! context this-clock-path caption)} "x"]]
     [:div {:class "h-full m-px p-2 bg-gray-300"}
      [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block print:hidden"}
@@ -348,11 +341,10 @@
      ]
 )))
 
-(defn clocks-to-png-filter [node]
+(defn clocks-to-png-filter? [node]
   (let [tag-name (.. node -nodeName )]
-    (not(= tag-name "BUTTON")))
-)
-(def to-png-options (clj->js {:filter clocks-to-png-filter}))
+    (not= tag-name "BUTTON")))
+(def to-png-options (clj->js {:filter clocks-to-png-filter?}))
 
 (defn clocks-to-png [context]
 (let [clock-panel-div (. js/document (getElementById "clock-panel"))]
@@ -367,8 +359,7 @@
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
 (defn display-clocks [context]
   (let [{:keys [clocks]} context
-         clocks (reverse clocks)
-         clocks (->> clocks (map process-message))]
+        clocks (->> clocks reverse (map entry->entity))]
   [:div {:class content-box-class}
    [:div {:class "p-2"}
      [:div {:class "bg-gray-300 p-3"} 
@@ -378,7 +369,7 @@
     [:div {:class "grid grid grid-cols-3 flex relative bg-gray-300" :id "clock-panel"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
-         (map (fn [clock] (display-clock context clock))))]
+         (map (fn [{:keys [id] :as clock}] ^{:key id} [display-clock context clock])))]
     (when (< 0 (count clocks))
       [:div {:class "p-2"}
       [:a {:class "text-sm text-center print:hidden" :href "#"
@@ -391,7 +382,9 @@
 
 (defn clocks-list [context]
   (r/with-let [caption (r/atom "")]
-  (letfn [(click-clock [clock-key] (create-clock context clock-key @caption)(reset! caption ""))]
+  (let [click-clock (fn [clock-key]
+                       (create-clock context clock-key @caption)
+                       (reset! caption ""))]
   [:div {:class content-box-class}
    [:div {:class "p-2 print:hidden"}
     [:div {:class "bg-gray-300 p-3"}
@@ -403,7 +396,7 @@
               :on-change
               (fn [^js e] (reset! caption (.. e -target -value)))}]
      [:div {:class "grid grid-cols-12 p-2"}
-      (map (fn [{:keys [key face]} _]
+      (map (fn [{:keys [key face]}]
              ^{:key key} [:button {:on-click #(click-clock key)}
                           [:img {:class "w-8" :src (str "images/clocks/" face)}]])
            clocks/clock-types)]]]
@@ -476,16 +469,16 @@
        [:div {:class "float-right text-right"} [auth-display]]]
       (if-not user 
         [:div {:class "container mx-auto flex flex-wrap content-center"}
-        [:div {:class " "} (intro-view/intro-view [auth-display]) ]
+        [:div {:class " "} [intro-view/intro-view [auth-display]] ]
         ]
         (if db-connected?
           [:div {:class "p-2"}
-           (if (not (channel-name-ready? channel-name))
+           (if-not (channel-name-ready? channel-name)
              [:div {:class "absolute"}
-              (intro-view/intro-view
-              [add-channel context
-               (fn [channel-name]
-                 (rf/dispatch [:channel-name channel-name]))])
+              [intro-view/intro-view
+               [add-channel context
+                (fn [channel-name]
+                  (rf/dispatch [:channel-name channel-name]))]]
               ]
              [channel-view context]
           )]

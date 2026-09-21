@@ -1,6 +1,5 @@
 (ns dice-and-clocks.firebase-auth
   (:require [re-frame.core :as rf]
-            [cljs-bean.core :refer [->js ->clj]]
             [reagent.core :as r]))
 
 (defn auth ^js [] (.auth ^js js/firebase))
@@ -8,9 +7,6 @@
 (defn sign-in [auth-provider opts]
   (-> (auth)
       (.signInWithPopup auth-provider)
-      (.then (fn [^js result]
-               ;don't need to do anything
-               ))
       (.catch (fn [e]
                 (if-let [handler (:error-handler opts)]
                   (handler e)
@@ -24,8 +20,7 @@
 (defn sign-out [error-handler]
   (-> (auth)
       (.signOut)
-      (.catch (fn [e] (or (and error-handler (error-handler e))
-                          (js/console.log e)))))
+      (.catch (fn [e] (if error-handler (error-handler e) (js/console.log e)))))
   (set! (.-location js/window) "/"))
 
 (rf/reg-fx ::sign-out sign-out)

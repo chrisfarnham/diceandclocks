@@ -13,7 +13,7 @@
              {:key :aw-o :faces ["AWo00.png" "AWo03.png" "AWo06.png" "AWo09.png" "AWo10.png" "AWo11.png" "AWo12.png"]}
 ])
 
-(def clock-types (map (fn [{:keys [key faces]} _] {:key key :face (second faces)}) clocks))
+(def clock-types (mapv (fn [{:keys [key faces]}] {:key key :face (second faces)}) clocks))
 
 (defn get-faces [key]
   (:faces (first (filter #(= key (:key %)) clocks)))
