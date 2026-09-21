@@ -485,8 +485,7 @@
               (intro-view/intro-view
               [add-channel context
                (fn [channel-name]
-                 (let [channel-name (assoc channel-name :channel (utils/slugify (:channel channel-name)))]
-                   (rf/dispatch [:channel-name channel-name])))])
+                 (rf/dispatch [:channel-name channel-name]))])
               ]
              [channel-view context]
           )]
