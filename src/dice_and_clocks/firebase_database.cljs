@@ -3,7 +3,9 @@
             [reagent.core :as r]
             [reagent.ratom :as ratom]
             [cljs-bean.core :refer [->js ->clj]]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [dice-and-clocks.firebase-app :as firebase-app]
+            ["firebase/database" :as fdb :refer [ref push set onValue]]))
 
 (rf/reg-event-fx
  ::firebase-error
@@ -31,18 +33,17 @@
   (string/join "/" (->js p)))
 
 (defn database-ref [path]
-  (-> (.database ^js js/firebase)
-      (.ref (->path path))))
+  (ref firebase-app/db (->path path)))
 
 (defn- ref-set [{:keys [path value] :as args}]
-  (.set (database-ref path)
-        (->js value)
-        (success-failure-dispatch args)))
+  (let [respond (success-failure-dispatch args)]
+    (-> (set (database-ref path) (->js value))
+        (.then #(respond nil) respond))))
 
 (defn get-push-key [path]
   (let [push-key (-> (database-ref path)
-                     (.push)
-                     (.-key))]
+                      (push)
+                      (.-key))]
     (concat path [push-key])))
 
 (rf/reg-fx ::push-fx
@@ -57,9 +58,9 @@
    {::push-fx args}))
 
 (defn- ref-update [{:keys [path value] :as args}]
-  (.update (database-ref path)
-           (->js value)
-           (success-failure-dispatch args)))
+  (let [respond (success-failure-dispatch args)]
+    (-> (fdb/update (database-ref path) (->js value))
+        (.then #(respond nil) respond))))
 
 (rf/reg-fx ::update-fx
            (fn [args]
@@ -73,13 +74,14 @@
 (defn on-value-reaction
   "returns a reagent atom that will always have the latest value at 'path' in the Firebase database"
   [{:keys [path] :as args}]
-  (let [ref ^js (database-ref path)
+  (let [query (database-ref path)
         reaction (r/atom nil)
-        callback (fn [^js x] (reset! reaction (some-> x (.val) ->clj)))]
-    (.on ref "value" callback (success-failure-dispatch args))
+        callback (fn [^js snapshot] (reset! reaction (some-> snapshot (.val) ->clj)))
+        error-callback (success-failure-dispatch args)
+        unsubscribe (onValue query callback error-callback)]
     (ratom/make-reaction
      (fn [] @reaction)
-     :on-dispose #(.off ref "value" callback))))
+     :on-dispose unsubscribe)))
 
 (rf/reg-sub ::realtime-value
             (fn [[_ args]]
