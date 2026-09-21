@@ -84,7 +84,7 @@
   "`message-path` includes the message-id"
   [message-path]
   (rf/dispatch
-   [::db/push {:value true :path  (conj message-path :deleted?)}]))
+   [::db/update {:value {:deleted? true} :path message-path}]))
 
 
 (defn message-container [message display & {:keys [deleteable?] :or {deleteable? true}}]
@@ -153,7 +153,7 @@
         (string/blank? position) nil
         :else (str position " ~ " effect))]
       [:div {:class "text-sm ml-4"}
-             (when-not (string/blank? position)
+             (when (and (not critical) (not (string/blank? position)))
                [action-rolls/result-description result position critical]
              )
        ]
@@ -310,7 +310,7 @@
   (let [name @(rf/subscribe [::subs/name])
         channel @(rf/subscribe [::subs/channel])]
     (rf/dispatch
-     [::db/push {:value true :path  (conj clock-path :deleted?)}])
+     [::db/update {:value {:deleted? true} :path clock-path}])
     (rf/dispatch
      [::db/push {:path (subs/messages-path channel)
                  :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])))
