@@ -44,9 +44,19 @@
 (rf/reg-sub ::user-auth
             user-info
             (fn [user]
-              (if (or (not user) (instance? js/Error user))
-                (-> (auth) (.signInAnonymously))
-                user)))
+              (let [errored? (instance? js/Error user)]
+                (when (or (not user) errored?)
+                  ;; Trigger anonymous sign-in as a side effect, but
+                  ;; always return the real auth state below (nil while
+                  ;; pending) rather than signInAnonymously's Promise --
+                  ;; a Promise is truthy, so returning it here would make
+                  ;; every downstream (if-not user ...) check see a
+                  ;; signed-in user immediately, before
+                  ;; onAuthStateChanged's callback (which is what
+                  ;; actually updates user-info's atom) has fired even
+                  ;; once.
+                  (-> (auth) (.signInAnonymously)))
+                (when-not errored? user))))
 
 (rf/reg-sub ::uid
             (fn [] (rf/subscribe [::user-auth]))
