@@ -284,7 +284,6 @@
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
-         ;(map (fn [message] [:p "Message would go here!"]))
          (map (fn [{:keys [id] :as message}] ^{:key id} [display-message message]))
          )]]]]
 ))
