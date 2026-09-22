@@ -1,6 +1,6 @@
 (ns dice-and-clocks.core
   (:require
-   [reagent.dom :as rdom]
+   [reagent.dom.client :as rdom]
    [re-frame.core :as re-frame]
    [dice-and-clocks.events :as events]
    [dice-and-clocks.views :as views]
@@ -12,11 +12,12 @@
   (when config/debug?
     (println "dev mode")))
 
+(defonce react-root
+  (rdom/create-root (.getElementById js/document "app")))
+
 (defn ^:dev/after-load mount-root []
   (re-frame/clear-subscription-cache!)
-  (let [root-el (.getElementById js/document "app")]
-    (rdom/unmount-component-at-node root-el)
-    (rdom/render [views/main-panel] root-el)))
+  (rdom/render react-root [views/main-panel]))
 
 (defn init []
   (re-frame/dispatch-sync [::events/initialize-db])
