@@ -19,7 +19,7 @@
 		"firebase": "^12.19.0",
 		"haikunator": "^2.1.2",
 		"html-to-image": "^1.11.13",
-		"react": "17.0.1",
-		"react-dom": "17.0.1"
+		"react": "19.3.0",
+		"react-dom": "19.3.0"
 	}
 }
