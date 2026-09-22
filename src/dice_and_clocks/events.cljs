@@ -7,6 +7,7 @@
    [dice-and-clocks.config :as config]
    [dice-and-clocks.firebase-analytics :as analytics]
    [dice-and-clocks.firebase-database :as fdb]
+   [dice-and-clocks.specs :as specs]
    ))
 
 (re-frame/reg-event-db
@@ -57,45 +58,51 @@
 (re-frame/reg-event-fx
  :mark-clock-deleted
  (fn [{:keys [db]} [_ clock-path caption]]
-   {:fx [[::fdb/update-fx {:value {:deleted? true} :path clock-path}]
-         [::fdb/push-fx {:path (subs/messages-path (:channel db))
-                          :value {:message-type "clock-deleted" :sender (:name db)
-                                  :clock-path clock-path :caption caption}}]]}))
+   (let [message {:message-type "clock-deleted" :sender (:name db)
+                   :clock-path clock-path :caption caption}]
+     {:fx [[::fdb/update-fx {:value {:deleted? true} :path clock-path}]
+           [::fdb/push-fx {:path (subs/messages-path (:channel db))
+                            :value (specs/validate! ::specs/message :mark-clock-deleted message)}]]})))
 
 (re-frame/reg-event-fx
  :persist-dice-roll
  (fn [{:keys [db]} [_ dice-results]]
-   (let [channel (:channel db)]
+   (let [channel (:channel db)
+         message (merge dice-results {:sender (:name db) :message-type "dice-roll"})]
      {::fdb/push-fx {:path (subs/messages-path channel)
-                      :value (merge dice-results {:sender (:name db)
-                                                   :message-type "dice-roll"})}
+                      :value (specs/validate! ::specs/message :persist-dice-roll message)}
       ::log-event [:roll-dice {:channel-id channel :name (:name db)}]})))
 
 (re-frame/reg-event-fx
  :send-message
  (fn [{:keys [db]} [_ message]]
-   (let [channel (:channel db)]
+   (let [channel (:channel db)
+         message {:message-type "message" :sender (:name db) :text message}]
      {::fdb/push-fx {:path (subs/messages-path channel)
-                      :value {:message-type "message" :sender (:name db) :text message}}
+                      :value (specs/validate! ::specs/message :send-message message)}
       ::log-event [:send-message {:channel-id channel :name (:name db)}]})))
 
 (re-frame/reg-event-fx
  :create-clock
  (fn [{:keys [db]} [_ key caption clock-count]]
    (let [channel (:channel db)
-         clock {:key key :creator (:name db) :caption caption :tic 0 :order clock-count}]
+         clock (specs/validate! ::specs/clock :create-clock
+                                 {:key key :creator (:name db) :caption caption
+                                  :tic 0 :order clock-count})
+         message (specs/validate! ::specs/message :create-clock
+                                   (clock-event-message db "created a new clock" clock))]
      {:fx [[::fdb/push-fx {:path (subs/clocks-path channel) :value clock}]
-           [::fdb/push-fx {:path (subs/messages-path channel)
-                            :value (clock-event-message db "created a new clock" clock)}]]
+           [::fdb/push-fx {:path (subs/messages-path channel) :value message}]]
       ::log-event [:create-clock {:channel-id channel :name (:name db) :caption caption}]})))
 
 (defn- adjust-clock
  [{:keys [db]} clock-path clock delta verb]
  (let [channel (:channel db)
-       new-clock (update clock :tic + delta)]
+       new-clock (update clock :tic + delta)
+       message (specs/validate! ::specs/message :adjust-clock
+                                 (clock-event-message db verb new-clock))]
    {:fx [[::fdb/update-fx {:path clock-path :value {:tic (:tic new-clock)}}]
-         [::fdb/push-fx {:path (subs/messages-path channel)
-                          :value (clock-event-message db verb new-clock)}]]}))
+         [::fdb/push-fx {:path (subs/messages-path channel) :value message}]]}))
 
 (re-frame/reg-event-fx
  :advance-clock

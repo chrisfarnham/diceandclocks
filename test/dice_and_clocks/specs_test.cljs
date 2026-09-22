@@ -11,9 +11,24 @@
     (is (s/valid? ::specs/clock
                    {:key :four-b :creator "chris" :caption "" :tic 0 :order 0
                     :id "-abc123" :deleted? true})))
+  (testing "a string :key is valid -- Firebase has no keyword type, so
+            ->clj round-trips a written :four-b back as \"four-b\";
+            clocks/get-face already coerces with (keyword key) for the
+            same reason"
+    (is (s/valid? ::specs/clock
+                   {:key "four-b" :creator "chris" :caption "" :tic 0 :order 0})))
+  (testing "a keyword :id is valid -- cljs-bean's ->clj turns a Firebase
+            {id entity} object's keys into keywords by default, and
+            entry->entity folds that key straight into :id"
+    (is (s/valid? ::specs/clock
+                   {:key :four-b :creator "chris" :caption "" :tic 0 :order 0
+                    :id :-abc123})))
   (testing "an unknown clock key is invalid"
     (is (not (s/valid? ::specs/clock
                         {:key :not-a-real-clock :creator "chris" :caption "" :tic 0 :order 0}))))
+  (testing "an unknown clock key as a string is also invalid"
+    (is (not (s/valid? ::specs/clock
+                        {:key "not-a-real-clock" :creator "chris" :caption "" :tic 0 :order 0}))))
   (testing "a negative tic is invalid"
     (is (not (s/valid? ::specs/clock
                         {:key :four-b :creator "chris" :caption "" :tic -1 :order 0})))))
@@ -65,8 +80,27 @@
     (is (s/valid? ::specs/message
                    {:message-type "clock-event" :sender "chris" :text "advanced a clock"
                     :key :four-b :tic 1 :caption "test clock"})))
+  (testing "a clock-event with a keyword :id (Firebase entry key, per
+            entry->entity) is valid"
+    (is (s/valid? ::specs/message
+                   {:message-type "clock-event" :sender "chris" :text "advanced a clock"
+                    :key :four-b :tic 1 :caption "test clock" :id :-abc123})))
+  (testing "a dice-roll with explicit nil :position/:effect/:text is
+            valid -- roll-dice's proto-dice-roll writes these keys as
+            nil when unset rather than omitting them"
+    (is (s/valid? ::specs/message
+                   {:message-type "dice-roll" :sender "chris"
+                    :pool [4] :result 4 :size 1 :critical false
+                    :position nil :effect nil :text nil})))
   (testing "a real clock-deleted shape is valid"
     (is (s/valid? ::specs/message
                    {:message-type "clock-deleted" :sender "chris" :caption "test clock"})))
   (testing "an unrecognized message-type is invalid, not an exception"
     (is (not (s/valid? ::specs/message {:message-type "bogus" :sender "chris"})))))
+
+(deftest validate!-test
+  (testing "returns the value unchanged whether or not it conforms"
+    (let [valid {:key :four-b :creator "chris" :caption "" :tic 0 :order 0}
+          invalid {:key :not-a-real-clock}]
+      (is (= valid (specs/validate! ::specs/clock :test valid)))
+      (is (= invalid (specs/validate! ::specs/clock :test invalid))))))
