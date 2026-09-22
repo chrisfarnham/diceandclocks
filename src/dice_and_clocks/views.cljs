@@ -80,13 +80,6 @@
    (let [die-class (get dice-icon-class die-result)]
      ^{:key id}[:i {:class (str die-class " text-4xl m-1")}])))
 
-(defn mark-deleted!
-  "`message-path` includes the message-id"
-  [message-path]
-  (rf/dispatch
-   [::db/update {:value {:deleted? true} :path message-path}]))
-
-
 (defn message-container [message display & {:keys [deleteable?] :or {deleteable? true}}]
    (let  [{:keys [id]} message
           channel @(rf/subscribe [::subs/channel])
@@ -95,7 +88,8 @@
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
-         [:button {:class "text-white" :on-click #(mark-deleted! (conj messages-path id))} "x"]])
+         [:button {:class "text-white"
+                   :on-click #(rf/dispatch [:mark-message-deleted (conj messages-path id)])} "x"]])
     ]))
 
 (defmulti display-message (fn [message] (:message-type message)))
@@ -115,7 +109,7 @@
    [:span (str "\"" caption "\"")]
    [:div {:class "space-x-4"}(str sender " deleted a clock.")
     [:button {:class button-class
-              :on-click (fn [] (rf/dispatch [::db/update {:path clock-path :value {:deleted? nil}}]))} "Restore"]]
+              :on-click (fn [] (rf/dispatch [:restore-clock clock-path]))} "Restore"]]
   ])
 :deleteable? false)))
 
@@ -165,18 +159,6 @@
 (defmethod display-message :default [message]
   (println (str "default display-message: " message)))
 
-(defn create-message [name message]
-  {:message-type "message" :sender name :text message})
-
-(defn persist-roll [dice-results]
-  (let [name @(rf/subscribe [::subs/name])
-        channel @(rf/subscribe [::subs/channel])]
-    (rf/dispatch [::db/push {:path (subs/messages-path channel)
-                             :value (merge dice-results
-                                           {:sender name
-                                            :message-type "dice-roll"})}])
-    (analytics/log-event :roll-dice {:channel-id channel :name name})))
-
 (def circle-button-class "text-lg fas fa-circle")
 (def little-div-class "h-3")
 
@@ -208,8 +190,8 @@
     (let [increment (fn [] (swap! dice-roll update :size #(min 9 (inc %))))
           decrement (fn [] (swap! dice-roll update :size #(max 0 (dec %))))
           roll (fn []
-                 (persist-roll (merge @dice-roll
-                                       (action-rolls/generate-dice-results (:size @dice-roll))))
+                 (rf/dispatch [:persist-dice-roll (merge @dice-roll
+                                                          (action-rolls/generate-dice-results (:size @dice-roll)))])
                  (reset! dice-roll proto-dice-roll))
           position-and-effect-set? (fn [] (let [{:keys [position effect]} @dice-roll] (not-any? nil? [position effect])))
           on-mouse-over (fn [position effect] (reset! p-and-e-label (str position " ~ " effect)))
@@ -247,13 +229,6 @@
 
 
 (defn add-message []
-  (let [name @(rf/subscribe [::subs/name])
-        channel @(rf/subscribe [::subs/channel])
-        persist-message (fn [message]
-                           (rf/dispatch
-                            [::db/push {:value (create-message name message)
-                                        :path (subs/messages-path channel)}])
-                           (analytics/log-event :send-message {:channel-id channel :name name}))]
   (r/with-let [new-message (r/atom nil)]
   [:<>
          [:input {:type  :text
@@ -266,8 +241,8 @@
      [:button {:disabled (string/blank? @new-message)
                :class button-class
                :on-click (fn []
-                           (persist-message @new-message)
-                           (reset! new-message nil))} "Send"]])))
+                           (rf/dispatch [:send-message @new-message])
+                           (reset! new-message nil))} "Send"]]))
 
 (def content-box-class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100")
 
@@ -292,68 +267,32 @@
          )]]]]
 ))
 
-(defn create-clock [key caption]
-  (let [name @(rf/subscribe [::subs/name])
-        channel @(rf/subscribe [::subs/channel])
-        clock-count (count @(rf/subscribe [::subs/clocks]))
-        clock {:key key :creator name :caption caption :tic 0 :order clock-count}
-        clock-message {:message-type "clock-event" :sender name :text "created a new clock"}
-        clock-message (merge clock-message clock)]
-
-    (rf/dispatch [::db/push {:path (subs/clocks-path channel) :value clock}])
-    (rf/dispatch [::db/push {:path (subs/messages-path channel) :value clock-message}])
-    (analytics/log-event :create-clock {:channel-id channel :name name :caption caption})
-))
-
-(defn mark-clock-deleted!
-  [clock-path caption]
-  (let [name @(rf/subscribe [::subs/name])
-        channel @(rf/subscribe [::subs/channel])]
-    (rf/dispatch
-     [::db/update {:value {:deleted? true} :path clock-path}])
-    (rf/dispatch
-     [::db/push {:path (subs/messages-path channel)
-                 :value {:message-type "clock-deleted" :sender name :clock-path clock-path :caption caption}}])))
-
 (def clock-button-class "px-1 text-3xl font-extra-bold")
 
 (defn display-clock [clock]
-  (let [name @(rf/subscribe [::subs/name])
-        channel @(rf/subscribe [::subs/channel])
+  (let [channel @(rf/subscribe [::subs/channel])
         clocks-path (subs/clocks-path channel)
-        messages-path (subs/messages-path channel)
         {:keys [key tic id caption creator]} clock
         this-clock-path (conj clocks-path id)
         clock-face (clocks/get-face key tic)]
-  (letfn [(advance [] (when (< tic (clocks/max-index key))
-                        (let [clock  (update clock :tic inc)
-                              new-values {:tic (:tic clock)}
-                              clock-message {:message-type "clock-event" :sender name :text "advanced a clock"}
-                              clock-message (merge clock-message clock)]
-                        (rf/dispatch [::db/update {:path this-clock-path :value new-values}])
-                        (rf/dispatch [::db/push {:path messages-path :value clock-message}])
-                        )))
-          (roll-back [] (when (< 0 tic)
-                        (let [clock  (update clock :tic dec)
-                              new-values {:tic (:tic clock)}
-                              clock-message {:message-type "clock-event" :sender name :text "rolled back a clock"}
-                              clock-message (merge clock-message clock)]
-                          (rf/dispatch [::db/update {:path this-clock-path :value new-values}])
-                          (rf/dispatch [::db/push {:path messages-path :value clock-message}]))
-                          ))]
     [:div {:class "bg-gray-200 relative"}
         [:div {:class "absolute top-2 right-4"}
-         [:button {:class "print:hidden" :on-click #(mark-clock-deleted! this-clock-path caption)} "x"]]
+         [:button {:class "print:hidden"
+                   :on-click #(rf/dispatch [:mark-clock-deleted this-clock-path caption])} "x"]]
     [:div {:class "h-full m-px p-2 bg-gray-300"}
      [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block print:hidden"}
-      [:button {:class clock-button-class :on-click #(advance)} "+"]
-      [:button {:class clock-button-class :on-click #(roll-back)} "-"]]
+      [:button {:class clock-button-class
+                :disabled (not (< tic (clocks/max-index key)))
+                :on-click #(rf/dispatch [:advance-clock this-clock-path clock])} "+"]
+      [:button {:class clock-button-class
+                :disabled (not (< 0 tic))
+                :on-click #(rf/dispatch [:roll-back-clock this-clock-path clock])} "-"]]
      [:div {:class "text-lg prose prose-m"} caption]
      [:div {:class "text-xs"} creator]
      ]
      ]
-)))
+))
 
 (defn clocks-to-png-filter? [node]
   (let [tag-name (.. node -nodeName )]
@@ -397,8 +336,9 @@
 
 (defn clocks-list []
   (r/with-let [caption (r/atom "")]
-  (let [click-clock (fn [clock-key]
-                       (create-clock clock-key @caption)
+  (let [clock-count (count @(rf/subscribe [::subs/clocks]))
+        click-clock (fn [clock-key]
+                       (rf/dispatch [:create-clock clock-key @caption clock-count])
                        (reset! caption ""))]
   [:div {:class content-box-class}
    [:div {:class "p-2 print:hidden"}
