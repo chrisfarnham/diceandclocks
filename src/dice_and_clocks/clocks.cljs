@@ -30,13 +30,3 @@
   (let [key (keyword key)]
     (- (count (:faces (first (filter #(= key (:key %)) clocks)))) 1)
 ))
-
-; (get-size :eight-o)
-; (get-faces :eight-o)
-; (keyword :test)
-; (get-face :four-b 1)
-; (keys clocks)
-; (map {keys})
-; (reduce-kv (fn [m k v] (assoc m k (second v))) {} clocks)
-; (reduce-kv (fn [m k v] (assoc m k {:face (second (:faces v)) :type (:type v)})) {} clocks)
-; clock-types
