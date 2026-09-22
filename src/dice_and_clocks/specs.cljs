@@ -1,23 +1,51 @@
 (ns dice-and-clocks.specs
   "clojure.spec definitions for the shapes this app reads from and writes
-  to Firebase. Not yet wired into any dispatch/subscription boundary --
-  see PLAN-code-review-findings.md section 3, which calls for that once
-  section 2's reg-event-fx consolidation gives these specs a small,
-  fixed set of call sites to validate at, instead of the current six
-  scattered inline dispatches."
+  to Firebase, validated at the two boundaries that matter: right before
+  a reg-event-fx handler (events.cljs) pushes/updates a value, and right
+  when a subscription value comes back from Firebase (subs.cljs). A
+  validation failure is logged (visible in the console) but never blocks
+  the write/read -- there's nowhere yet to surface it to the end user,
+  and display-message's :default fallback already handles an
+  unrecognized shape at render time; this is a visibility net, not a
+  gate."
   (:require [clojure.spec.alpha :as s]
             [dice-and-clocks.clocks :as clocks]))
 
+;; Firebase push-ids are strings, but cljs-bean's ->clj (firebase_database.cljs's
+;; on-value-reaction) turns a {id entity} object's keys into keywords by
+;; default, and views.cljs's entry->entity folds that key straight into
+;; :id -- so an id read back from Firebase (as opposed to one written
+;; fresh) shows up as a keyword, not a string. Accept either.
+(defn id? [x] (or (string? x) (keyword? x)))
+
+(defn validate!
+  "Logs s/explain-str to the console when `value` doesn't conform to
+  `spec`, tagged with `context` (e.g. the Firebase path or a call-site
+  name) so a failure is traceable back to where it came from. Always
+  returns `value` unchanged, so this can wrap a value inline without
+  disturbing the caller's control flow."
+  [spec context value]
+  (when-not (s/valid? spec value)
+    (js/console.error (str "spec failure (" context "):\n" (s/explain-str spec value))))
+  value)
+
 ;; -- clock --------------------------------------------------------------
 
+;; A clock's :key is a real keyword (e.g. :four-b) when this app builds
+;; and writes it, but Firebase RTDB has no keyword type -- reading it
+;; back via ->clj round-trips it to a plain string ("four-b"), which is
+;; exactly why clocks/get-face and friends already coerce with
+;; (keyword key) rather than assuming a keyword. Accept both
+;; representations here for the same reason.
 (def clock-keys (set (map :key clocks/clocks)))
+(def clock-key-names (set (map name clock-keys)))
 
-(s/def :clock/key clock-keys)
+(s/def :clock/key (s/or :keyword clock-keys :string clock-key-names))
 (s/def :clock/creator string?)
 (s/def :clock/caption string?)
 (s/def :clock/tic nat-int?)
 (s/def :clock/order nat-int?)
-(s/def :clock/id string?)
+(s/def :clock/id id?)
 (s/def :clock/deleted? boolean?)
 
 (s/def ::clock
@@ -32,8 +60,12 @@
 
 (s/def :message/message-type #{"message" "dice-roll" "clock-event" "clock-deleted"})
 (s/def :message/sender string?)
-(s/def :message/text string?)
-(s/def :message/id string?)
+;; nilable, not just opt-un: roll-dice's proto-dice-roll writes :text
+;; (and dice-roll's :position/:effect below) as an explicit nil when
+;; unset, rather than omitting the key -- opt-un alone only makes the
+;; *key* optional, it doesn't allow a present key to hold nil.
+(s/def :message/text (s/nilable string?))
+(s/def :message/id id?)
 (s/def :message/deleted? boolean?)
 
 (defmulti message-type :message-type)
@@ -60,8 +92,8 @@
 ;; not a claim about Blades in the Dark's general rules.
 (s/def :dice-roll/size (s/int-in 0 10))
 (s/def :dice-roll/critical boolean?)
-(s/def :dice-roll/position string?)
-(s/def :dice-roll/effect string?)
+(s/def :dice-roll/position (s/nilable string?))
+(s/def :dice-roll/effect (s/nilable string?))
 
 (defmethod message-type "message" [_]
   (s/keys :req-un [:message/message-type :message/sender :message/text]
