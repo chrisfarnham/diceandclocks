@@ -398,23 +398,22 @@
           [:p {:class "print:hidden"} "Copy and share this address "]
           [:p {:class "font-mono"} (str utils/shareable-address)]])]
        [:div {:class "float-right text-right"} [auth-display]]]
-      (if-not user 
+      (cond
+        (not user)
         [:div {:class "container mx-auto flex flex-wrap content-center"}
-        [:div {:class " "} [intro-view/intro-view [auth-display]] ]
-        ]
-        (if db-connected?
-          [:div {:class "p-2"}
-           (if-not (channel-name-ready? channel-name)
-             [:div {:class "absolute"}
-              [intro-view/intro-view
-               [add-channel
-                (fn [channel-name]
-                  (rf/dispatch [:channel-name channel-name]))]]
-              ]
-             [channel-view]
-          )]
-          ; if db not connected
-          [:div "Loading..."]
-        )
-      )
+         [:div {:class " "} [intro-view/intro-view [auth-display]]]]
+
+        (not db-connected?)
+        [:div "Loading..."]
+
+        (not (channel-name-ready? channel-name))
+        [:div {:class "p-2"}
+         [:div {:class "absolute"}
+          [intro-view/intro-view
+           [add-channel
+            (fn [channel-name]
+              (rf/dispatch [:channel-name channel-name]))]]]]
+
+        :else
+        [:div {:class "p-2"} [channel-view]])
       ]]))

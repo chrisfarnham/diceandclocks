@@ -32,10 +32,10 @@
      :display-name (.-displayName user)}))
 
 (defn user-info []
-  (let [auth-state (r/atom nil)
+  (let [auth-state (r/atom {:user nil :error nil})
         callback (fn [x]
-                   (reset! auth-state (user->data x)))
-        error-callback (fn [x] (reset! auth-state x))]
+                   (reset! auth-state {:user (user->data x) :error nil}))
+        error-callback (fn [x] (reset! auth-state {:user nil :error x}))]
     (onAuthStateChanged firebase-app/auth
                          callback
                          error-callback)
@@ -43,20 +43,19 @@
 
 (rf/reg-sub ::user-auth
             user-info
-            (fn [user]
-              (let [errored? (instance? js/Error user)]
-                (when (or (not user) errored?)
-                  ;; Trigger anonymous sign-in as a side effect, but
-                  ;; always return the real auth state below (nil while
-                  ;; pending) rather than signInAnonymously's Promise --
-                  ;; a Promise is truthy, so returning it here would make
-                  ;; every downstream (if-not user ...) check see a
-                  ;; signed-in user immediately, before
-                  ;; onAuthStateChanged's callback (which is what
-                  ;; actually updates user-info's atom) has fired even
-                  ;; once.
-                  (signInAnonymously firebase-app/auth))
-                (when-not errored? user))))
+            (fn [{:keys [user error]}]
+              (when (or (not user) error)
+                ;; Trigger anonymous sign-in as a side effect, but
+                ;; always return the real auth state below (nil while
+                ;; pending) rather than signInAnonymously's Promise --
+                ;; a Promise is truthy, so returning it here would make
+                ;; every downstream (if-not user ...) check see a
+                ;; signed-in user immediately, before
+                ;; onAuthStateChanged's callback (which is what
+                ;; actually updates user-info's atom) has fired even
+                ;; once.
+                (signInAnonymously firebase-app/auth))
+              user))
 
 (rf/reg-sub ::uid
             (fn [] (rf/subscribe [::user-auth]))
