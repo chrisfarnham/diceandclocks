@@ -82,7 +82,7 @@
    (let  [{:keys [id]} message
           channel @(rf/subscribe [::subs/channel])
           messages-path (subs/messages-path channel)]
-     [:div {:class "bg-gray-300 rounded-md flex p-2 relative"}
+     [:div {:class "bg-gray-300 border-2 border-white rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
@@ -252,12 +252,12 @@
 (defn messages-list []
   (let [messages (->> @(rf/subscribe [::subs/messages]) reverse (map entry->entity))]
   [:<>
-  [:div {:class content-box-class}
+  [:div {:class (str content-box-class " h-full flex flex-col min-h-0")}
   [:div {:class "p-2"} [roll-dice]]
-  [:div {:class "grid grid-flow-row grid-cols-1"}
+  [:div {:class "flex flex-col flex-1 min-h-0"}
    [:div {:class "mx-2 p-2 bg-gray-300"}
     [:span {:class "float-left w-full"} [:div {:class ""}[add-message]]]]
-   [:div {:class "overscroll-auto overflow-auto max-h-118 flex flex-col m-1 gap-1 p-1"}
+   [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 flex flex-col m-1 gap-1 p-1 bg-gray-300"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
@@ -312,10 +312,10 @@
 ; overscroll-auto overflow-auto max-h-screen grid m-1 gap-1 p-1
 (defn display-clocks []
   (let [clocks (->> @(rf/subscribe [::subs/clocks]) reverse (map entry->entity))]
-  [:div {:class content-box-class}
-   [:div {:class "p-2"}
-     [:div {:class "bg-gray-300 p-3"}
-   [:div {:class "overscroll-auto overflow-auto max-h-118 print:container print:overflow-visible"
+  [:div {:class (str content-box-class " flex-1 min-h-0 flex flex-col")}
+   [:div {:class "p-2 flex-1 min-h-0 flex flex-col"}
+     [:div {:class "bg-gray-300 p-3 flex-1 min-h-0 flex flex-col"}
+   [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 print:container print:overflow-visible"
           }
     ; This div is specifically to support PNG downloads of clocks
     [:div {:class "grid grid grid-cols-3 flex relative bg-gray-300" :id "clock-panel"}
@@ -338,7 +338,7 @@
         click-clock (fn [clock-key]
                        (rf/dispatch [:create-clock clock-key @caption clock-count])
                        (reset! caption ""))]
-  [:div {:class content-box-class}
+  [:div {:class (str content-box-class " h-full flex flex-col min-h-0")}
    [:div {:class "p-2 print:hidden"}
     [:div {:class "bg-gray-300 p-3"}
      [:input {:type  :text
@@ -373,10 +373,10 @@
    {:component-did-mount #(enter-channel!)
     :reagent-render
     (fn []
-      [:div {:class "grid grid-cols-2 print:grid-cols-none"}
-       [:div {:class "mr-2 print:hidden"}
+      [:div {:class "flex print:block flex-1 min-h-0"}
+       [:div {:class "w-1/2 print:w-full print:hidden mr-2 min-h-0 flex flex-col"}
         [messages-list]]
-       [:div {:class "ml-2"}
+       [:div {:class "w-1/2 print:w-full ml-2 min-h-0 flex flex-col"}
         [clocks-list]]])}))
 
 
@@ -396,21 +396,22 @@
           [:p {:class "print:hidden"} "Copy and share this address "]
           [:p {:class "font-mono"} (str utils/shareable-address)]])]
        [:div {:class "float-right text-right"} [auth-display]]]
-      (cond
-        (not user)
-        [:div {:class "container mx-auto flex flex-wrap content-center"}
-         [intro-view/intro-view [auth-display]]]
+      [:div {:class "flex-1 min-h-0 flex flex-col"}
+       (cond
+         (not user)
+         [:div {:class "container mx-auto flex flex-wrap content-center"}
+          [intro-view/intro-view [auth-display]]]
 
-        (not db-connected?)
-        [:div "Loading..."]
+         (not db-connected?)
+         [:div "Loading..."]
 
-        (not (channel-name-ready? channel-name))
-        [:div {:class "p-2"}
-         [intro-view/intro-view
-          [add-channel
-           (fn [channel-name]
-             (rf/dispatch [:channel-name channel-name]))]]]
+         (not (channel-name-ready? channel-name))
+         [:div {:class "p-2"}
+          [intro-view/intro-view
+           [add-channel
+            (fn [channel-name]
+              (rf/dispatch [:channel-name channel-name]))]]]
 
-        :else
-        [:div {:class "p-2"} [channel-view]])
+         :else
+         [:div {:class "p-2 flex-1 min-h-0 flex flex-col"} [channel-view]])]
       ]]))
