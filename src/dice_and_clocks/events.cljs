@@ -71,7 +71,7 @@
          message (merge dice-results {:sender (:name db) :message-type "dice-roll"})]
      {::fdb/push-fx {:path (subs/messages-path channel)
                       :value (specs/validate! ::specs/message :persist-dice-roll message)}
-      ::log-event [:roll-dice {:channel-id channel :name (:name db)}]})))
+      ::log-event [:roll-dice {:channel_id channel :name (:name db)}]})))
 
 (re-frame/reg-event-fx
  :send-message
@@ -80,7 +80,7 @@
          message {:message-type "message" :sender (:name db) :text message}]
      {::fdb/push-fx {:path (subs/messages-path channel)
                       :value (specs/validate! ::specs/message :send-message message)}
-      ::log-event [:send-message {:channel-id channel :name (:name db)}]})))
+      ::log-event [:send-message {:channel_id channel :name (:name db)}]})))
 
 (re-frame/reg-event-fx
  :create-clock
@@ -93,7 +93,7 @@
                                    (clock-event-message db "created a new clock" clock))]
      {:fx [[::fdb/push-fx {:path (subs/clocks-path channel) :value clock}]
            [::fdb/push-fx {:path (subs/messages-path channel) :value message}]]
-      ::log-event [:create-clock {:channel-id channel :name (:name db) :caption caption}]})))
+      ::log-event [:create-clock {:channel_id channel :name (:name db) :caption caption}]})))
 
 (defn- adjust-clock
  [{:keys [db]} clock-path clock delta verb]
@@ -114,7 +114,7 @@
      {:fx [[::fdb/set-fx {:path (subs/theme-path channel) :value new-theme}]
            [::fdb/push-fx {:path (subs/messages-path channel)
                             :value (specs/validate! ::specs/message :toggle-theme message)}]]
-      ::log-event [:toggle-theme {:channel-id channel :name (:name db) :theme new-theme}]})))
+      ::log-event [:toggle-theme {:channel_id channel :name (:name db) :theme new-theme}]})))
 
 (re-frame/reg-event-fx
  :advance-clock

@@ -301,7 +301,7 @@
 (let [clock-panel-div (. js/document (getElementById "clock-panel"))
       name @(rf/subscribe [::subs/name])
       channel @(rf/subscribe [::subs/channel])]
-  (analytics/log-event :export-clocks-png {:channel-id channel :name name})
+  (analytics/log-event :export-clocks-png {:channel_id channel :name name})
   (-> clock-panel-div
       (html-to-image/toPng to-png-options)
       (.then
@@ -359,7 +359,7 @@
 (defn enter-channel! []
   (let [name @(rf/subscribe [::subs/name])
         channel @(rf/subscribe [::subs/channel])]
-    (analytics/log-event :enter-channel {:channel-id channel :name name})
+    (analytics/log-event :enter-channel {:channel_id channel :name name})
     (rf/dispatch
      [::db/update {:value (cond-> {:last-accessed (.now js/Date)}
                             (config/preview-channel?) (assoc :test true))
