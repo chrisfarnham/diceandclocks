@@ -18,9 +18,9 @@
    ))
 
 
-(def text-input-class "px-3 py-3 placeholder-gray-400 text-gray-700 relative bg-white rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
+(def text-input-class "px-3 py-3 placeholder-gray-400 dc-input relative rounded text-sm shadow outline-none focus:outline-none focus:shadow-outline w-3/4")
 
-(def button-class "bg-grey-500 p-1 m-1 border-2 border-black print:hidden")
+(def button-class "dc-btn p-1 m-1 border-2 print:hidden")
 
 
 (defn auth-display []
@@ -42,7 +42,7 @@
         channel (if (string/blank? channel) (create-channel-id) channel)]
     (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
       [:div {:class "space-y-2 text-center"}
-       [:p {:class "text-2xl"} "Start"]
+       [:p {:class "text-2xl dc-title-font"} "Start"]
        [:div
         [:p {:class "text-xs"} "Your channel name is a shared secret for your group."]
         [:input {:type :text
@@ -82,11 +82,11 @@
    (let  [{:keys [id]} message
           channel @(rf/subscribe [::subs/channel])
           messages-path (subs/messages-path channel)]
-     [:div {:class "bg-gray-300 border-2 border-white rounded-md flex p-2 relative"}
+     [:div {:class "dc-card-bg dc-card-border border-2 rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
-         [:button {:class "text-white"
+         [:button {:class "dc-delete-btn"
                    :on-click #(rf/dispatch [:mark-message-deleted (conj messages-path id)])} "x"]])
     ]))
 
@@ -120,7 +120,7 @@
         [:span {:class ""} (str "\"" caption "\"")]
         [:div {:class "space-x-4"}
          [:span {:class "inline-block"} (str sender " " text)]
-         [:span {:class "inline-block"} [:img {:class "inline w-8" :src (str "images/clocks/" (clocks/get-face key tic))}]]]])
+         [:span {:class "inline-block"} [:img {:class "inline w-8 dc-clock-icon" :src (str "images/clocks/" (clocks/get-face key tic))}]]]])
      :deleteable? false)))
 
 (defmethod display-message "dice-roll" [message]
@@ -175,7 +175,7 @@
                     :on-mouse-over #(on-mouse-over position effect)
                     :on-mouse-out  #(on-mouse-out)}
            [:i {:class circle-button-class}]]]
-         (cond (= 8 idx) [:button {:class (str "text-white p-px focus:outline-none " little-div-class) 
+         (cond (= 8 idx) [:button {:class (str "dc-delete-btn p-px focus:outline-none " little-div-class) 
                                    :on-click #(on-click nil nil)} "x"]
                (= 2 (mod idx 3)) [:div {:class little-div-class} ""])]
         )) action-rolls/combinations)]]
@@ -196,13 +196,13 @@
           on-mouse-out (fn [] (reset! p-and-e-label nil))
           on-click (fn [position effect] (swap! dice-roll assoc :position position :effect effect))]
       [:<>
-       [:div {:class "bg-gray-300 grid grid-cols-3 grid-rows-2 p-1 pt-3"}
+       [:div {:class "dc-surface-bg grid grid-cols-3 grid-rows-2 p-1 pt-3"}
         [:div {:class "grid grid-cols-2"}
          [position-and-effect {:on-mouse-over on-mouse-over :on-mouse-out on-mouse-out :on-click on-click}]
          [:div {:class "w-64"}
           [:button {:class button-class
                     :on-click decrement} "-"]
-          [:span {:class "align-middle prose prose-2xl"}(str (:size @dice-roll))]
+          [:span {:class "align-middle prose prose-2xl" :style {:color "var(--dc-text)"}}(str (:size @dice-roll))]
           [:button {:class button-class
                     :on-click increment} "+"]]]
         [:div {:class "col-span-2 relative"}
@@ -217,7 +217,7 @@
         [:div]
         [:div {:class "col-span-2"}
          [:p {:class (str "mt-3 text-2xl" 
-                          (when-not (position-and-effect-set?) " text-gray-900 text-opacity-70 animate-pulse"))}
+                          (when-not (position-and-effect-set?) " dc-text-muted animate-pulse"))}
           (if (position-and-effect-set?)
             (let [{:keys [position effect]} @dice-roll] (str position " ~ " effect))
             @p-and-e-label)]
@@ -242,7 +242,7 @@
                            (rf/dispatch [:send-message @new-message])
                            (reset! new-message nil))} "Send"]]))
 
-(def content-box-class "container rounded-xl bg-gradient-to-r from-gray-50 to-gray-100")
+(def content-box-class "container rounded-xl dc-panel-gradient")
 
 (defn entry->entity
   "Firebase returns {id entity}; fold the id into the entity map."
@@ -255,9 +255,9 @@
   [:div {:class (str content-box-class " h-full flex flex-col min-h-0")}
   [:div {:class "p-2"} [roll-dice]]
   [:div {:class "flex flex-col flex-1 min-h-0"}
-   [:div {:class "mx-2 p-2 bg-gray-300"}
+   [:div {:class "mx-2 p-2 dc-surface-bg"}
     [:span {:class "float-left w-full"} [:div {:class ""}[add-message]]]]
-   [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 flex flex-col m-1 gap-1 p-1 bg-gray-300"}
+   [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 flex flex-col m-1 gap-1 p-1 dc-surface-bg"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
@@ -273,12 +273,12 @@
         {:keys [key tic id caption creator]} clock
         this-clock-path (conj clocks-path id)
         clock-face (clocks/get-face key tic)]
-    [:div {:class "bg-gray-200 relative"}
+    [:div {:class "dc-surface-alt-bg relative"}
         [:div {:class "absolute top-2 right-4"}
          [:button {:class "print:hidden"
                    :on-click #(rf/dispatch [:mark-clock-deleted this-clock-path caption])} "x"]]
-    [:div {:class "h-full m-px p-2 bg-gray-300"}
-     [:img  {:class "w-24" :src (str "images/clocks/" clock-face)}]
+    [:div {:class "h-full m-px p-2 dc-surface-bg"}
+     [:img  {:class "w-24 dc-clock-icon" :src (str "images/clocks/" clock-face)}]
      [:span {:class "inline-block print:hidden"}
       [:button {:class clock-button-class
                 :disabled (not (< tic (clocks/max-index key)))
@@ -286,7 +286,7 @@
       [:button {:class clock-button-class
                 :disabled (not (< 0 tic))
                 :on-click #(rf/dispatch [:roll-back-clock this-clock-path clock])} "-"]]
-     [:div {:class "text-lg prose prose-m"} caption]
+     [:div {:class "text-lg prose prose-m" :style {:color "var(--dc-text)"}} caption]
      [:div {:class "text-xs"} creator]
      ]
      ]
@@ -314,11 +314,11 @@
   (let [clocks (->> @(rf/subscribe [::subs/clocks]) reverse (map entry->entity))]
   [:div {:class (str content-box-class " flex-1 min-h-0 flex flex-col")}
    [:div {:class "p-2 flex-1 min-h-0 flex flex-col"}
-     [:div {:class "bg-gray-300 p-3 flex-1 min-h-0 flex flex-col"}
+     [:div {:class "dc-surface-bg p-3 flex-1 min-h-0 flex flex-col"}
    [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 print:container print:overflow-visible"
           }
     ; This div is specifically to support PNG downloads of clocks
-    [:div {:class "grid grid grid-cols-3 flex relative bg-gray-300" :id "clock-panel"}
+    [:div {:class "grid grid grid-cols-3 flex relative dc-surface-bg" :id "clock-panel"}
         (->> clocks
          (remove (fn [{:keys [deleted?]}] deleted?))
          (map (fn [{:keys [id] :as clock}] ^{:key id} [display-clock clock])))]
@@ -340,7 +340,7 @@
                        (reset! caption ""))]
   [:div {:class (str content-box-class " h-full flex flex-col min-h-0")}
    [:div {:class "p-2 print:hidden"}
-    [:div {:class "bg-gray-300 p-3"}
+    [:div {:class "dc-surface-bg p-3"}
      [:input {:type  :text
               :class text-input-class
               :value @caption
@@ -351,7 +351,7 @@
      [:div {:class "grid grid-cols-12 p-2"}
       (map (fn [{:keys [key face]}]
              ^{:key key} [:button {:on-click #(click-clock key)}
-                          [:img {:class "w-8" :src (str "images/clocks/" face)}]])
+                          [:img {:class "w-8 dc-clock-icon" :src (str "images/clocks/" face)}]])
            clocks/clock-types)]]]
     [display-clocks]]
   )))
@@ -380,22 +380,43 @@
         [clocks-list]]])}))
 
 
+(defn- apply-theme! [theme]
+  (set! (.. js/document -documentElement -dataset -theme) theme))
+
+(defn theme-toggle [theme]
+  [:button {:class "dc-btn border-2 rounded px-2 py-1 text-xs print:hidden"
+            :title "Toggle the color scheme for everyone in this channel"
+            :on-click #(rf/dispatch [:toggle-theme theme])}
+   (get subs/theme-label theme)])
+
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
         user @(rf/subscribe [::auth/user-auth])
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
-        channel-name {:channel channel :name name}]
+        channel-name {:channel channel :name name}
+        ;; ::subs/theme opens a Firebase listener at subscribe-time; only
+        ;; subscribe once auth+connectivity+channel are all resolved
+        ;; (mirroring how messages/clocks live inside channel-view,
+        ;; mounted under the same :else branch below) -- subscribing
+        ;; earlier races anonymous sign-in and gets a one-time,
+        ;; non-retrying permission_denied on the listener.
+        theme (if (and user db-connected? (channel-name-ready? channel-name))
+                @(rf/subscribe [::subs/theme])
+                subs/default-theme)]
+    (apply-theme! theme)
     [:div {:class "h-screen"}
-     [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y bg-gray-300"}
+     [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y dc-app-bg"}
       [:div {:class "grid grid-cols-3 mt-1"}
-       [:div {:class "ml-1"}[:p>a {:class "float-left prose prose-xl" :href "/"} "Clocks and Dice"]]
+       [:div {:class "ml-1"}[:p>a {:class "float-left prose prose-xl dc-title-font" :href "/" :style {:color "var(--dc-text)"}} "Clocks and Dice"]]
        [:div {:class "text-sm text-center"}
         (when (channel-name-ready? channel-name)
           [:span
           [:p {:class "print:hidden"} "Copy and share this address "]
           [:p {:class "font-mono"} (str utils/shareable-address)]])]
-       [:div {:class "float-right text-right"} [auth-display]]]
+       [:div {:class "float-right text-right space-x-2"}
+        (when (channel-name-ready? channel-name) [theme-toggle theme])
+        [auth-display]]]
       [:div {:class "flex-1 min-h-0 flex flex-col"}
        (cond
          (not user)

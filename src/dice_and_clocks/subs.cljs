@@ -24,6 +24,24 @@
 (defn clocks-path [channel]
   (conj (channels-path channel) :clocks))
 
+(defn theme-path [channel]
+  (conj (channels-path channel) :theme))
+
+(def default-theme "blades")
+
+(def other-theme {"blades" "blades68" "blades68" "blades"})
+
+(def theme-label {"blades" "Blades in the Dark" "blades68" "Blades '68"})
+
+(re-frame/reg-sub
+ ::theme
+ (fn [_]
+   (let [channel @(re-frame/subscribe [::channel])]
+     (if (string/blank? channel)
+       default-theme
+       (or @(re-frame/subscribe [::db/realtime-value {:path (theme-path channel)}])
+           default-theme)))))
+
 ;; Before a channel is chosen, `channel` is "" and messages-path/clocks-path
 ;; point at /channels/"" — Firebase correctly denies that read, logging a
 ;; permission_denied error on every landing-page visit. Only subscribe to

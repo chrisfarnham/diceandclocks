@@ -6,14 +6,14 @@
 (defn intro-view [sign-in]
   [:div {:class "container mx-auto max-w-2xl px-4 py-8 text-center space-y-6"}
 
-   [:p {:class "text-4xl"} "Clocks and Dice"]
+   [:p {:class "text-4xl dc-title-font"} "Clocks and Dice"]
 
    [:p "Clocks and Dice is an assistant (dice roller, chat, and clock tracker)
         for Evil Hat Productions' Blades in the Dark RPG."]
 
    [:div {:class "grid grid-cols-9 gap-1 justify-items-center"}
     (for [x (clocks/get-faces :eight-o)] ^{:key (str "intro-" x)}
-         [:img {:class "w-6" :src (str "images/clocks/" x)}])]
+         [:img {:class "w-6 dc-clock-icon" :src (str "images/clocks/" x)}])]
 
    [:div sign-in]
 

@@ -40,6 +40,15 @@
     (-> (set (database-ref path) (->js value))
         (.then #(respond nil) respond))))
 
+(rf/reg-fx ::set-fx
+           (fn [args]
+             (ref-set args)))
+
+(rf/reg-event-fx
+ ::set
+ (fn [_ [_ args]]
+   {::set-fx args}))
+
 (defn get-push-key [path]
   (let [push-key (-> (database-ref path)
                       (push)
