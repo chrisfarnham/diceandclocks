@@ -13,6 +13,96 @@
   --animate-critical-flash: critical-flash 0.8s ease-out;
 }
 
+/* Two color schemes, both drawn from cover art for the games this app
+   supports. "blades" (the default) is the noir palette of Blades in the
+   Dark's own key art: near-black stone, dark charcoal, and the
+   burnt-orange glow of the hooded figure's eyes. "blades68" is drawn
+   from the Blades '68 cover: sun-bleached cream, mustard-gold, and
+   steel blue. Selected by [data-theme] on <html>, toggled per-channel
+   in Firebase so the choice is shared and persistent for the whole
+   group (see :toggle-theme in events.cljs). */
+:root {
+  --dc-bg: #121110;
+  --dc-surface: #201d1a;
+  --dc-surface-alt: #2b2723;
+  --dc-card: #29251f;
+  --dc-border: #46403a;
+  --dc-text: #ece5d8;
+  --dc-text-muted: #a89e8f;
+  --dc-accent: #d9631e;
+  --dc-button-bg: #332c24;
+  --dc-button-border: #d9631e;
+  --dc-button-text: #ece5d8;
+  --dc-input-bg: #ece5d8;
+  --dc-input-text: #29251f;
+  --dc-panel-grad-from: #201d1a;
+  --dc-panel-grad-to: #29251f;
+}
+
+:root[data-theme="blades68"] {
+  --dc-bg: #f2e6bf;
+  --dc-surface: #ecdba3;
+  --dc-surface-alt: #e2a63b;
+  --dc-card: #f7f0d9;
+  --dc-border: #23507a;
+  --dc-text: #2b1d10;
+  --dc-text-muted: #6b5636;
+  --dc-accent: #23507a;
+  --dc-button-bg: #e2a63b;
+  --dc-button-border: #23507a;
+  --dc-button-text: #2b1d10;
+  --dc-input-bg: #fbf6e6;
+  --dc-input-text: #2b1d10;
+  --dc-panel-grad-from: #ecdba3;
+  --dc-panel-grad-to: #f7f0d9;
+}
+
+html, body {
+  background-color: var(--dc-bg);
+  color: var(--dc-text);
+}
+
+.dc-app-bg { background-color: var(--dc-bg); }
+.dc-surface-bg { background-color: var(--dc-surface); }
+.dc-surface-alt-bg { background-color: var(--dc-surface-alt); }
+.dc-card-bg { background-color: var(--dc-card); }
+.dc-card-border { border-color: var(--dc-border); }
+.dc-text-muted { color: var(--dc-text-muted); }
+.dc-accent-text { color: var(--dc-accent); }
+.dc-delete-btn { color: var(--dc-text-muted); }
+.dc-panel-gradient {
+  background-image: linear-gradient(to right, var(--dc-panel-grad-from), var(--dc-panel-grad-to));
+}
+/* Blades '68's titles borrow the cover art's own chunky, rounded
+   retro-70s display lettering (Righteous, a free stand-in for that
+   style); the noir "blades" theme keeps the app's normal serif. */
+.dc-title-font {
+  font-family: 'Newsreader', serif;
+}
+:root[data-theme="blades68"] .dc-title-font {
+  font-family: 'Righteous', cursive;
+}
+.dc-btn {
+  background-color: var(--dc-button-bg);
+  border-color: var(--dc-button-border);
+  color: var(--dc-button-text);
+}
+.dc-input {
+  background-color: var(--dc-input-bg);
+  color: var(--dc-input-text);
+}
+/* The clock-face artwork is dark ink line-work drawn for a light
+   background, not theme-aware image assets -- give every clock icon its
+   own light, rounded backing (independent of the app-wide dark surface
+   colors) so the strokes stay legible in both color schemes. */
+.dc-clock-icon {
+  background-color: var(--dc-input-bg);
+  border-radius: 9999px;
+}
+.dc-input::placeholder {
+  color: var(--dc-text-muted);
+}
+
 @keyframes critical-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

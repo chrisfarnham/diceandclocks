@@ -105,6 +105,18 @@
          [::fdb/push-fx {:path (subs/messages-path channel) :value message}]]}))
 
 (re-frame/reg-event-fx
+ :toggle-theme
+ (fn [{:keys [db]} [_ current-theme]]
+   (let [channel (:channel db)
+         new-theme (get subs/other-theme current-theme subs/default-theme)
+         message {:message-type "message" :sender (:name db)
+                   :text (str "switched the color scheme to " (get subs/theme-label new-theme))}]
+     {:fx [[::fdb/set-fx {:path (subs/theme-path channel) :value new-theme}]
+           [::fdb/push-fx {:path (subs/messages-path channel)
+                            :value (specs/validate! ::specs/message :toggle-theme message)}]]
+      ::log-event [:toggle-theme {:channel-id channel :name (:name db) :theme new-theme}]})))
+
+(re-frame/reg-event-fx
  :advance-clock
  (fn [cofx [_ clock-path clock]]
    (adjust-clock cofx clock-path clock 1 "advanced a clock")))
