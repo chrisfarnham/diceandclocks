@@ -84,7 +84,7 @@
    (let  [{:keys [id]} message
           channel @(rf/subscribe [::subs/channel])
           messages-path (subs/messages-path channel)]
-     [:div {:class "bg-gray-300 rounded-md flex p-2 relative"}
+     [:div {:class "bg-gray-300 border-2 border-white rounded-md flex p-2 relative"}
       (display)
       (when deleteable?
         [:div {:class "absolute right-2"}
@@ -259,7 +259,7 @@
   [:div {:class "flex flex-col flex-1 min-h-0"}
    [:div {:class "mx-2 p-2 bg-gray-300"}
     [:span {:class "float-left w-full"} [:div {:class ""}[add-message]]]]
-   [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 flex flex-col m-1 gap-1 p-1"}
+   [:div {:class "overscroll-auto overflow-auto flex-1 min-h-0 flex flex-col m-1 gap-1 p-1 bg-gray-300"}
 
     (->> messages
          (remove (fn [{:keys [deleted?]}] deleted?))
