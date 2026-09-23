@@ -40,30 +40,28 @@
   (let [name @(rf/subscribe [::subs/name])
         channel @(rf/subscribe [::subs/channel])
         channel (if (string/blank? channel) (create-channel-id) channel)]
-  (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
-   
-  [:div {:class "space-y-2 space-x-2 text-center"}
-   [:span {:class "block text-2xl"} "Start"]
-   [:span {:class "block" }
-       [:p {:class "text-xs"} "Your channel name is a shared secret for your group."]
-   [:input {:type :text
-            :class text-input-class
-            :value (:channel @new-channel-name)
-            :placeholder (if (string/blank? (:channel @new-channel-name)) "Channel Name" (:channel @new-channel-name))
-            :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]
-    ]
-   [:span {:class "block"}
-    [:input {:type :text
-            :class text-input-class
-            :value (:name @new-channel-name)
-            :placeholder "User Name"
-            :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]]
-   [:span {:class "block"}
-   [:button {:disabled (not (channel-name-ready? @new-channel-name))
-             :class button-class
-             :on-click (fn []
-                         (persist-channel-name @new-channel-name)
-                         (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
+    (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
+      [:div {:class "space-y-2 text-center"}
+       [:p {:class "text-2xl"} "Start"]
+       [:div
+        [:p {:class "text-xs"} "Your channel name is a shared secret for your group."]
+        [:input {:type :text
+                 :class text-input-class
+                 :value (:channel @new-channel-name)
+                 :placeholder "Channel Name"
+                 :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]]
+       [:div
+        [:input {:type :text
+                 :class text-input-class
+                 :value (:name @new-channel-name)
+                 :placeholder "User Name"
+                 :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]]
+       [:div
+        [:button {:disabled (not (channel-name-ready? @new-channel-name))
+                  :class button-class
+                  :on-click (fn []
+                              (persist-channel-name @new-channel-name)
+                              (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
 
 (def dice-icon-class 
   {1 "fas fa-dice-one"
@@ -401,18 +399,17 @@
       (cond
         (not user)
         [:div {:class "container mx-auto flex flex-wrap content-center"}
-         [:div {:class " "} [intro-view/intro-view [auth-display]]]]
+         [intro-view/intro-view [auth-display]]]
 
         (not db-connected?)
         [:div "Loading..."]
 
         (not (channel-name-ready? channel-name))
         [:div {:class "p-2"}
-         [:div {:class "absolute"}
-          [intro-view/intro-view
-           [add-channel
-            (fn [channel-name]
-              (rf/dispatch [:channel-name channel-name]))]]]]
+         [intro-view/intro-view
+          [add-channel
+           (fn [channel-name]
+             (rf/dispatch [:channel-name channel-name]))]]]
 
         :else
         [:div {:class "p-2"} [channel-view]])
