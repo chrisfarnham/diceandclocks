@@ -7,6 +7,8 @@
    [dice-and-clocks.config :as config]
    [dice-and-clocks.firebase-analytics :as analytics]
    [dice-and-clocks.firebase-database :as fdb]
+   [dice-and-clocks.i18n :as i18n]
+   [dice-and-clocks.locale :as locale]
    [dice-and-clocks.specs :as specs]
    ))
 
@@ -89,18 +91,25 @@
          clock (specs/validate! ::specs/clock :create-clock
                                  {:key key :creator (:name db) :caption caption
                                   :tic 0 :order clock-count})
+         text (i18n/t :clock-event/created @locale/locale-atom)
          message (specs/validate! ::specs/message :create-clock
-                                   (clock-event-message db "created a new clock" clock))]
+                                   (clock-event-message db text clock))]
      {:fx [[::fdb/push-fx {:path (subs/clocks-path channel) :value clock}]
            [::fdb/push-fx {:path (subs/messages-path channel) :value message}]]
       ::log-event [:create-clock {:channel_id channel :name (:name db) :caption caption}]})))
 
+;; `verb-key` is a translation key, not raw text -- clock/theme
+;; activity-feed lines are persisted verbatim (see :toggle-theme below
+;; and the i18n.cljs comment on :clock-event/*), written once in the
+;; acting player's own locale at the moment the event fires, and never
+;; re-translated per viewer.
 (defn- adjust-clock
- [{:keys [db]} clock-path clock delta verb]
+ [{:keys [db]} clock-path clock delta verb-key]
  (let [channel (:channel db)
        new-clock (update clock :tic + delta)
+       text (i18n/t verb-key @locale/locale-atom)
        message (specs/validate! ::specs/message :adjust-clock
-                                 (clock-event-message db verb new-clock))]
+                                 (clock-event-message db text new-clock))]
    {:fx [[::fdb/update-fx {:path clock-path :value {:tic (:tic new-clock)}}]
          [::fdb/push-fx {:path (subs/messages-path channel) :value message}]]}))
 
@@ -110,7 +119,8 @@
    (let [channel (:channel db)
          new-theme (get subs/other-theme current-theme subs/default-theme)
          message {:message-type "message" :sender (:name db)
-                   :text (str "switched the color scheme to " (get subs/theme-label new-theme))}]
+                   :text (i18n/tf :theme/switched-prefix @locale/locale-atom
+                                  (get subs/theme-label new-theme))}]
      {:fx [[::fdb/set-fx {:path (subs/theme-path channel) :value new-theme}]
            [::fdb/push-fx {:path (subs/messages-path channel)
                             :value (specs/validate! ::specs/message :toggle-theme message)}]]
@@ -119,10 +129,10 @@
 (re-frame/reg-event-fx
  :advance-clock
  (fn [cofx [_ clock-path clock]]
-   (adjust-clock cofx clock-path clock 1 "advanced a clock")))
+   (adjust-clock cofx clock-path clock 1 :clock-event/advanced)))
 
 (re-frame/reg-event-fx
  :roll-back-clock
  (fn [cofx [_ clock-path clock]]
-   (adjust-clock cofx clock-path clock -1 "rolled back a clock")))
+   (adjust-clock cofx clock-path clock -1 :clock-event/rolled-back)))
 

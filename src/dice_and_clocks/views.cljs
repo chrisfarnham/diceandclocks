@@ -4,7 +4,9 @@
    [dice-and-clocks.action-rolls :as action-rolls]
    [dice-and-clocks.clocks :as clocks]
    [dice-and-clocks.config :as config]
+   [dice-and-clocks.i18n :as i18n]
    [dice-and-clocks.intro-view :as intro-view]
+   [dice-and-clocks.locale :as locale]
    [dice-and-clocks.firebase-auth :as auth]
    [dice-and-clocks.firebase-database :as db]
    [dice-and-clocks.firebase-analytics :as analytics]
@@ -39,29 +41,30 @@
 (defn add-channel [persist-channel-name]
   (let [name @(rf/subscribe [::subs/name])
         channel @(rf/subscribe [::subs/channel])
-        channel (if (string/blank? channel) (create-channel-id) channel)]
+        channel (if (string/blank? channel) (create-channel-id) channel)
+        locale @(rf/subscribe [::locale/locale])]
     (r/with-let [new-channel-name (r/atom {:channel channel :name name})]
       [:div {:class "space-y-2 text-center"}
-       [:p {:class "text-2xl dc-title-font"} "Start"]
+       [:p {:class "text-2xl dc-title-font"} (i18n/t :ui/start locale)]
        [:div
-        [:p {:class "text-xs"} "Your channel name is a shared secret for your group."]
+        [:p {:class "text-xs"} (i18n/t :ui/channel-secret-hint locale)]
         [:input {:type :text
                  :class text-input-class
                  :value (:channel @new-channel-name)
-                 :placeholder "Channel Name"
+                 :placeholder (i18n/t :ui/channel-name-placeholder locale)
                  :on-change (fn [^js e] (swap! new-channel-name assoc :channel (.. e -target -value)))}]]
        [:div
         [:input {:type :text
                  :class text-input-class
                  :value (:name @new-channel-name)
-                 :placeholder "User Name"
+                 :placeholder (i18n/t :ui/user-name-placeholder locale)
                  :on-change (fn [^js e] (swap! new-channel-name assoc :name (.. e -target -value)))}]]
        [:div
         [:button {:disabled (not (channel-name-ready? @new-channel-name))
                   :class button-class
                   :on-click (fn []
                               (persist-channel-name @new-channel-name)
-                              (reset! new-channel-name {:channel "" :name ""}))} "Join"]]])))
+                              (reset! new-channel-name {:channel "" :name ""}))} (i18n/t :ui/join locale)]]])))
 
 (def dice-icon-class 
   {1 "fas fa-dice-one"
@@ -101,30 +104,33 @@
 
 
 (defmethod display-message "clock-deleted" [message]
-(let [{:keys [sender clock-path caption]} message]
+(let [{:keys [sender clock-path caption]} message
+      locale @(rf/subscribe [::locale/locale])]
   (message-container message (fn []
   [:div {:class ""}
-   [:span (str "\"" caption "\"")]
-   [:div {:class "space-x-4"}(str sender " deleted a clock.")
+   [:span (i18n/tf :format/quote locale caption)]
+   [:div {:class "space-x-4"} (i18n/tf :clock-event/deleted locale sender)
     [:button {:class button-class
-              :on-click (fn [] (rf/dispatch [:restore-clock clock-path]))} "Restore"]]
+              :on-click (fn [] (rf/dispatch [:restore-clock clock-path]))} (i18n/t :ui/restore locale)]]
   ])
 :deleteable? false)))
 
 (defmethod display-message "clock-event" [message]
-  (let [{:keys [sender text caption key tic]} message]
+  (let [{:keys [sender text caption key tic]} message
+        locale @(rf/subscribe [::locale/locale])]
     (message-container
      message
      (fn []
        [:div {:class ""}
-        [:span {:class ""} (str "\"" caption "\"")]
+        [:span {:class ""} (i18n/tf :format/quote locale caption)]
         [:div {:class "space-x-4"}
          [:span {:class "inline-block"} (str sender " " text)]
          [:span {:class "inline-block"} [:img {:class "inline w-8 dc-clock-icon" :src (str "images/clocks/" (clocks/get-face key tic))}]]]])
      :deleteable? false)))
 
 (defmethod display-message "dice-roll" [message]
-  (let [{:keys [id sender result pool text size position effect critical]} message]
+  (let [{:keys [id sender result pool text size position effect critical]} message
+        locale @(rf/subscribe [::locale/locale])]
     (message-container message (fn []
     [:<>
      (when critical
@@ -136,17 +142,17 @@
        [:span {:class "inline-block align-bottom"}
         (map-indexed (fn [index item] (dice-icon item (str id "-" index))) pool)]
        [:span {:class "text-4xl align-middle"} (str " : " result)]
-       [:span {:class "text-xs italic"} (str " (" size " dice)") [:br]]]
-      [:div (when-not (string/blank? text) [:span (str "\"" text "\"") [:br]])]]
+       [:span {:class "text-xs italic"} (i18n/tf :dice/count-suffix locale size) [:br]]]
+      [:div (when-not (string/blank? text) [:span (i18n/tf :format/quote locale text) [:br]])]]
      [:div {:class ""}
       [:div {:class "text-center text-xl"}
       (cond
-        critical [:span {:class "text-3xl font-extrabold text-red-600 animate-critical-fade-in"} "Critical!"]
+        critical [:span {:class "text-3xl font-extrabold text-red-600 animate-critical-fade-in"} (i18n/t :ui/critical-banner locale)]
         (string/blank? position) nil
-        :else (str position " ~ " effect))]
+        :else (str (i18n/translate-position position locale) " ~ " (i18n/translate-effect effect locale)))]
       [:div {:class "text-sm ml-4"}
              (when (and (not critical) (not (string/blank? position)))
-               [action-rolls/result-description result position critical]
+               [action-rolls/result-description result position critical locale]
              )
        ]
 
@@ -185,14 +191,16 @@
 
 (defn roll-dice []
   (r/with-let [dice-roll (r/atom proto-dice-roll) p-and-e-label (r/atom nil)]
-    (let [increment (fn [] (swap! dice-roll update :size #(min 9 (inc %))))
+    (let [locale @(rf/subscribe [::locale/locale])
+          increment (fn [] (swap! dice-roll update :size #(min 9 (inc %))))
           decrement (fn [] (swap! dice-roll update :size #(max 0 (dec %))))
           roll (fn []
                  (rf/dispatch [:persist-dice-roll (merge @dice-roll
                                                           (action-rolls/generate-dice-results (:size @dice-roll)))])
                  (reset! dice-roll proto-dice-roll))
           position-and-effect-set? (fn [] (let [{:keys [position effect]} @dice-roll] (not-any? nil? [position effect])))
-          on-mouse-over (fn [position effect] (reset! p-and-e-label (str position " ~ " effect)))
+          position-effect-label (fn [position effect] (str (i18n/translate-position position locale) " ~ " (i18n/translate-effect effect locale)))
+          on-mouse-over (fn [position effect] (reset! p-and-e-label (position-effect-label position effect)))
           on-mouse-out (fn [] (reset! p-and-e-label nil))
           on-click (fn [position effect] (swap! dice-roll assoc :position position :effect effect))]
       [:<>
@@ -209,17 +217,17 @@
          [:input {:type :text
                   :class (str text-input-class "")
                   :value (:text @dice-roll)
-                  :placeholder "Roll caption"
+                  :placeholder (i18n/t :ui/roll-caption-placeholder locale)
                   :max-length "100"
                   :on-change (fn [^js e] (swap! dice-roll assoc :text (.. e -target -value)))}]
          [:button {:class (str "absolute inset-y-0 right-0 " button-class)
-                   :on-click roll} "Roll"]]
+                   :on-click roll} (i18n/t :ui/roll locale)]]
         [:div]
         [:div {:class "col-span-2"}
-         [:p {:class (str "mt-3 text-2xl" 
+         [:p {:class (str "mt-3 text-2xl"
                           (when-not (position-and-effect-set?) " dc-text-muted animate-pulse"))}
           (if (position-and-effect-set?)
-            (let [{:keys [position effect]} @dice-roll] (str position " ~ " effect))
+            (let [{:keys [position effect]} @dice-roll] (position-effect-label position effect))
             @p-and-e-label)]
         ]
         ]]
@@ -228,11 +236,12 @@
 
 (defn add-message []
   (r/with-let [new-message (r/atom nil)]
+  (let [locale @(rf/subscribe [::locale/locale])]
   [:<>
          [:input {:type  :text
               :class text-input-class
               :value @new-message
-              :placeholder "Message"
+              :placeholder (i18n/t :ui/message-placeholder locale)
               :max-length "100"
               :on-change
               (fn [^js e] (reset! new-message (.. e -target -value)))}]
@@ -240,7 +249,7 @@
                :class button-class
                :on-click (fn []
                            (rf/dispatch [:send-message @new-message])
-                           (reset! new-message nil))} "Send"]]))
+                           (reset! new-message nil))} (i18n/t :ui/send locale)]])))
 
 (def content-box-class "container rounded-xl dc-panel-gradient")
 
@@ -334,7 +343,8 @@
 
 (defn clocks-list []
   (r/with-let [caption (r/atom "")]
-  (let [clock-count (count @(rf/subscribe [::subs/clocks]))
+  (let [locale @(rf/subscribe [::locale/locale])
+        clock-count (count @(rf/subscribe [::subs/clocks]))
         click-clock (fn [clock-key]
                        (rf/dispatch [:create-clock clock-key @caption clock-count])
                        (reset! caption ""))]
@@ -344,7 +354,7 @@
      [:input {:type  :text
               :class text-input-class
               :value @caption
-              :placeholder "Clock caption"
+              :placeholder (i18n/t :ui/clock-caption-placeholder locale)
               :max-length "100"
               :on-change
               (fn [^js e] (reset! caption (.. e -target -value)))}]
@@ -383,11 +393,20 @@
 (defn- apply-theme! [theme]
   (set! (.. js/document -documentElement -dataset -theme) theme))
 
-(defn theme-toggle [theme]
+(defn- apply-locale! [locale]
+  (set! (.. js/document -documentElement -lang) locale))
+
+(defn theme-toggle [theme locale]
   [:button {:class "dc-btn border-2 rounded px-2 py-1 text-xs print:hidden"
-            :title "Toggle the color scheme for everyone in this channel"
+            :title (i18n/t :ui/theme-toggle-title locale)
             :on-click #(rf/dispatch [:toggle-theme theme])}
    (get subs/theme-label theme)])
+
+(defn locale-toggle [locale]
+  [:button {:class "dc-btn border-2 rounded px-2 py-1 text-xs print:hidden"
+            :title (i18n/t :ui/locale-toggle-title locale)
+            :on-click #(locale/set-locale! (if (= locale "ru") "en" "ru"))}
+   (if (= locale "ru") "EN" "RU")])
 
 (defn main-panel []
   (let [name @(rf/subscribe [::subs/name])
@@ -395,16 +414,20 @@
         db-connected? @(rf/subscribe [::db/realtime-value {:path [:.info :connected]}])
         channel @(rf/subscribe [::subs/channel])
         channel-name {:channel channel :name name}
+        locale @(rf/subscribe [::locale/locale])
         ;; ::subs/theme opens a Firebase listener at subscribe-time; only
         ;; subscribe once auth+connectivity+channel are all resolved
         ;; (mirroring how messages/clocks live inside channel-view,
         ;; mounted under the same :else branch below) -- subscribing
         ;; earlier races anonymous sign-in and gets a one-time,
-        ;; non-retrying permission_denied on the listener.
+        ;; non-retrying permission_denied on the listener. ::locale/locale
+        ;; is local-only (localStorage, not Firebase), so it has no such
+        ;; race and can subscribe unconditionally here.
         theme (if (and user db-connected? (channel-name-ready? channel-name))
                 @(rf/subscribe [::subs/theme])
                 subs/default-theme)]
     (apply-theme! theme)
+    (apply-locale! locale)
     [:div {:class "h-screen"}
      [:div {:class "flex flex-col w-full h-screen fixed pin-l pin-y dc-app-bg"}
       [:div {:class "grid grid-cols-3 mt-1"}
@@ -412,10 +435,11 @@
        [:div {:class "text-sm text-center"}
         (when (channel-name-ready? channel-name)
           [:span
-          [:p {:class "print:hidden"} "Copy and share this address "]
+          [:p {:class "print:hidden"} (i18n/t :ui/copy-address-hint locale)]
           [:p {:class "font-mono"} (str utils/shareable-address)]])]
        [:div {:class "float-right text-right space-x-2"}
-        (when (channel-name-ready? channel-name) [theme-toggle theme])
+        (when (channel-name-ready? channel-name) [theme-toggle theme locale])
+        [locale-toggle locale]
         [auth-display]]]
       [:div {:class "flex-1 min-h-0 flex flex-col"}
        (cond
@@ -424,7 +448,7 @@
           [intro-view/intro-view [auth-display]]]
 
          (not db-connected?)
-         [:div "Loading..."]
+         [:div (i18n/t :ui/loading locale)]
 
          (not (channel-name-ready? channel-name))
          [:div {:class "p-2"}
