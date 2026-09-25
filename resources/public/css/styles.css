@@ -75,12 +75,28 @@ html, body {
 }
 /* Blades '68's titles borrow the cover art's own chunky, rounded
    retro-70s display lettering (Righteous, a free stand-in for that
-   style); the noir "blades" theme keeps the app's normal serif. */
+   style); the noir "blades" theme keeps the app's normal serif.
+   Neither Newsreader nor Righteous ships a Cyrillic subset (confirmed
+   against the Google Fonts CSS2 API), so the Russian locale swaps in
+   Cyrillic-native equivalents instead of silently falling back to
+   generic serif/cursive: PT Serif (designed for Russian typography) and
+   Unbounded (a bold geometric/retro display face with full Cyrillic
+   coverage, closer to Righteous's character than more ornate Cyrillic
+   display faces). */
 .dc-title-font {
   font-family: 'Newsreader', serif;
 }
+:root[lang="ru"] .dc-title-font {
+  font-family: 'PT Serif', serif;
+}
 :root[data-theme="blades68"] .dc-title-font {
   font-family: 'Righteous', cursive;
+}
+:root[data-theme="blades68"][lang="ru"] .dc-title-font {
+  font-family: 'Unbounded', cursive;
+}
+:root[lang="ru"] body {
+  font-family: 'PT Serif', serif;
 }
 .dc-btn {
   background-color: var(--dc-button-bg);
