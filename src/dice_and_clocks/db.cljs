@@ -3,7 +3,7 @@
             [clojure.string :as str]))
 
 (def search
-  (subs (js/decodeURIComponent (.. js/window -location -search)) 1))
+  (utils/strip-params (subs (js/decodeURIComponent (.. js/window -location -search)) 1)))
 
 ; js/decodeURIComponent
 
