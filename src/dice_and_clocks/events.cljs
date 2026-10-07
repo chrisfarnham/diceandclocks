@@ -118,13 +118,25 @@
  (fn [{:keys [db]} [_ current-theme]]
    (let [channel (:channel db)
          new-theme (get subs/other-theme current-theme subs/default-theme)
-         message {:message-type "message" :sender (:name db)
+         message {:message-type "theme-event" :sender (:name db)
                    :text (i18n/tf :theme/switched-prefix @locale/locale-atom
                                   (get subs/theme-label new-theme))}]
      {:fx [[::fdb/set-fx {:path (subs/theme-path channel) :value new-theme}]
            [::fdb/push-fx {:path (subs/messages-path channel)
                             :value (specs/validate! ::specs/message :toggle-theme message)}]]
       ::log-event [:toggle-theme {:channel_id channel :name (:name db) :theme new-theme}]})))
+
+;; Locale is per-browser and never written to Firebase, so there is no
+;; feed message to protect -- only the analytics event is recorded.
+(re-frame/reg-event-fx
+ :set-locale
+ (fn [{:keys [db]} [_ new-locale]]
+   {::set-locale new-locale
+    ::log-event [:set-locale {:channel_id (:channel db) :name (:name db) :locale new-locale}]}))
+
+(re-frame/reg-fx
+ ::set-locale
+ (fn [new-locale] (locale/set-locale! new-locale)))
 
 (re-frame/reg-event-fx
  :advance-clock

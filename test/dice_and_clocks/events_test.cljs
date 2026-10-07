@@ -30,3 +30,34 @@
     (rf/dispatch-sync [:name "Bob"])
     (is (= {:existing :value :name "Bob"}
            @rf-db/app-db))))
+
+(def ^:private fx-calls (atom {}))
+
+(defn- record-fx! [fx-id]
+  (rf/reg-fx fx-id (fn [v] (swap! fx-calls update fx-id (fnil conj []) v))))
+
+(defn- dispatch-recording [event]
+  (reset! fx-calls {})
+  (reset! rf-db/app-db {:channel "c" :name "Al"})
+  (doseq [id [:dice-and-clocks.events/log-event
+              :dice-and-clocks.events/set-locale
+              :dice-and-clocks.firebase-database/set-fx
+              :dice-and-clocks.firebase-database/push-fx]]
+    (record-fx! id))
+  (rf/dispatch-sync event)
+  @fx-calls)
+
+(deftest toggle-theme-event-test
+  (let [calls (dispatch-recording [:toggle-theme "blades"])
+        message (-> calls :dice-and-clocks.firebase-database/push-fx first :value)]
+    (testing "writes an undeletable theme-event message"
+      (is (= "theme-event" (:message-type message))))
+    (testing "logs the analytics event"
+      (is (= [[:toggle-theme {:channel_id "c" :name "Al" :theme "blades68"}]]
+             (:dice-and-clocks.events/log-event calls))))))
+
+(deftest set-locale-event-test
+  (let [calls (dispatch-recording [:set-locale "ru"])]
+    (is (= ["ru"] (:dice-and-clocks.events/set-locale calls)))
+    (is (= [[:set-locale {:channel_id "c" :name "Al" :locale "ru"}]]
+           (:dice-and-clocks.events/log-event calls)))))
