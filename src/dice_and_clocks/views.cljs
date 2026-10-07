@@ -115,6 +115,13 @@
   ])
 :deleteable? false)))
 
+(defmethod display-message "theme-event" [message]
+  (let [{:keys [sender text]} message]
+    (message-container message (fn []
+      [:div {:class "message"}
+       [:div {:class ""} (str sender " - " text)]])
+      :deleteable? false)))
+
 (defmethod display-message "clock-event" [message]
   (let [{:keys [sender text caption key tic]} message
         locale @(rf/subscribe [::locale/locale])]
@@ -405,7 +412,7 @@
 (defn locale-toggle [locale]
   [:button {:class "dc-btn border-2 rounded px-2 py-1 text-xs print:hidden"
             :title (i18n/t :ui/locale-toggle-title locale)
-            :on-click #(locale/set-locale! (if (= locale "ru") "en" "ru"))}
+            :on-click #(rf/dispatch [:set-locale (if (= locale "ru") "en" "ru")])}
    (if (= locale "ru") "EN" "RU")])
 
 (defn main-panel []

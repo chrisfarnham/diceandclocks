@@ -98,6 +98,11 @@
   (testing "an unrecognized message-type is invalid, not an exception"
     (is (not (s/valid? ::specs/message {:message-type "bogus" :sender "chris"})))))
 
+(deftest theme-event-spec-test
+  (is (s/valid? ::specs/message
+                {:message-type "theme-event" :sender "chris"
+                 :text "switched the color scheme to Blades '68"})))
+
 (deftest validate!-test
   (testing "returns the value unchanged whether or not it conforms"
     (let [valid {:key :four-b :creator "chris" :caption "" :tic 0 :order 0}

@@ -56,9 +56,9 @@
 ;;
 ;; A multi-spec keyed on :message-type, mirroring display-message's own
 ;; defmulti dispatch in views.cljs -- one spec per message-type, exactly
-;; the four values display-message's defmethods handle.
+;; the five values display-message's defmethods handle.
 
-(s/def :message/message-type #{"message" "dice-roll" "clock-event" "clock-deleted"})
+(s/def :message/message-type #{"message" "dice-roll" "clock-event" "clock-deleted" "theme-event"})
 (s/def :message/sender string?)
 ;; nilable, not just opt-un: roll-dice's proto-dice-roll writes :text
 ;; (and dice-roll's :position/:effect below) as an explicit nil when
@@ -118,5 +118,9 @@
 (defmethod message-type "clock-deleted" [_]
   (s/keys :req-un [:message/message-type :message/sender :clock/caption]
           :opt-un [:message/text :message/deleted?]))
+
+(defmethod message-type "theme-event" [_]
+  (s/keys :req-un [:message/message-type :message/sender :message/text]
+          :opt-un [:message/deleted?]))
 
 (s/def ::message (s/multi-spec message-type :message-type))
