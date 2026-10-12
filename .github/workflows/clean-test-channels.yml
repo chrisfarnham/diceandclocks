@@ -32,3 +32,10 @@ jobs:
           path: test-channel-backups/
           if-no-files-found: ignore
           retention-days: 90
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: firebase-debug-log
+          path: firebase-debug.log
+          if-no-files-found: ignore
+          retention-days: 7
