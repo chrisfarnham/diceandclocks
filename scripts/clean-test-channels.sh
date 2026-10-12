@@ -7,8 +7,20 @@ set -euo pipefail
 project="${FIREBASE_PROJECT:-clocksanddice-1b45c}"
 backup_dir="${BACKUP_DIR:-test-channel-backups}"
 
-channels=$(firebase database:get "/channels" --project "$project" \
-  --order-by test --equal-to true | jq -r 'keys[]?')
+# Capture the raw output first: if the CLI fails or prints something that
+# isn't JSON (a banner, an auth or permission error), show it instead of
+# letting jq fail with a bare parse error. `null` is the CLI's answer for
+# "no matching channels".
+err=$(mktemp)
+status=0
+raw=$(firebase database:get "/channels" --project "$project" \
+  --order-by test --equal-to true 2>"$err") || status=$?
+if [ "$status" -ne 0 ] || ! channels=$(echo "$raw" | jq -r '(. // {}) | keys[]' 2>/dev/null); then
+  echo "firebase database:get failed or did not return JSON (exit $status)." >&2
+  echo "--- stdout:" >&2; echo "$raw" >&2
+  echo "--- stderr:" >&2; cat "$err" >&2
+  exit 1
+fi
 
 if [ -z "$channels" ]; then
   echo "No test channels found."
